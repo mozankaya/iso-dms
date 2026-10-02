@@ -1,0 +1,8 @@
+{
+  "name": "@iso-dms/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"api: NestJS is not set up yet\""
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@iso-dms/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"web: Next.js is not set up yet\""
+  }
+}

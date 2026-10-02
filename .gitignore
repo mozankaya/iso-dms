@@ -1,0 +1,25 @@
+# Dependencies and build output
+node_modules
+dist
+.next
+*.tsbuildinfo
+coverage
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local data volumes
+docker-data
+
+# Project instruction files (kept local, not published)
+CLAUDE.md
+docs/PROJECT.md
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+*.log
