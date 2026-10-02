@@ -3,6 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "echo \"api: NestJS is not set up yet\""
+    "dev": "echo \"api: NestJS is not set up yet\"",
+    "test": "jest --runInBand",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "argon2": "^0.45.1",
+    "dotenv": "^18.0.5",
+    "jszip": "^3.10.2",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.4",
+    "@types/pg": "^8.23.1",
+    "jest": "^30.5.2",
+    "prisma": "^7.10.0",
+    "ts-jest": "^29.4.14",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   }
 }

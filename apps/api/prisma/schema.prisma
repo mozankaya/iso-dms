@@ -1,0 +1,306 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  QUALITY_MANAGER
+  APPROVER
+  EDITOR
+  READER
+}
+
+enum FileType {
+  DOCX
+  XLSX
+}
+
+enum DocumentStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  WITHDRAWN
+}
+
+enum RevisionStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  SUPERSEDED
+}
+
+enum RequestType {
+  NEW
+  REVISION
+  WITHDRAWAL
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  logoKey   String? // object storage key
+  createdAt DateTime @default(now())
+
+  departments      Department[]
+  users            User[]
+  categories       Category[]
+  templates        Template[]
+  documents        Document[]
+  revisions        Revision[]
+  documentRequests DocumentRequest[]
+  approvalSteps    ApprovalStep[]
+  feedbacks        Feedback[]
+  auditLogs        AuditLog[]
+}
+
+model Department {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  code           String // used in document codes, e.g. "KK"
+  parentId       String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parent       Department?  @relation("DepartmentTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children     Department[] @relation("DepartmentTree")
+  users        User[]
+  documents    Document[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+model User {
+  id             String    @id @default(uuid())
+  organizationId String
+  departmentId   String?
+  email          String
+  fullName       String
+  passwordHash   String
+  role           UserRole  @default(READER)
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+
+  ownedDocuments    Document[]        @relation("DocumentOwner")
+  preparedRevisions Revision[]        @relation("RevisionPreparedBy")
+  approvedRevisions Revision[]        @relation("RevisionApprovedBy")
+  documentRequests  DocumentRequest[]
+  approvalSteps     ApprovalStep[]
+  feedbacks         Feedback[]
+  auditLogs         AuditLog[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId, departmentId])
+}
+
+model Category {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  slug           String
+  codePrefix     String // e.g. "PR"
+  description    String?
+  icon           String?
+  sortOrder      Int      @default(0)
+  isExternal     Boolean  @default(false)
+  externalUrl    String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  templates    Template[]
+  documents    Document[]
+
+  @@unique([organizationId, slug])
+  @@unique([organizationId, codePrefix])
+  @@index([organizationId])
+}
+
+model Template {
+  id             String   @id @default(uuid())
+  organizationId String
+  categoryId     String?
+  name           String
+  fileType       FileType
+  storageKey     String
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  category     Category?    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, name, fileType])
+  @@index([organizationId, categoryId])
+}
+
+model Document {
+  id                   String         @id @default(uuid())
+  organizationId       String
+  categoryId           String
+  departmentId         String
+  code                 String // generated, e.g. "PR-KK-001"
+  sequenceNo           Int // per organization + category + department
+  title                String
+  fileType             FileType
+  status               DocumentStatus @default(DRAFT)
+  currentRevisionId    String?        @unique
+  ownerId              String
+  firstPublishedAt     DateTime?
+  revisedAt            DateTime?
+  reviewIntervalMonths Int?
+  nextReviewAt         DateTime?
+  retentionYears       Int?
+  withdrawnAt          DateTime?
+  withdrawalReason     String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  category        Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  department      Department        @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  owner           User              @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  currentRevision Revision?         @relation("CurrentRevision", fields: [currentRevisionId], references: [id], onDelete: Restrict)
+  revisions       Revision[]        @relation("DocumentRevisions")
+  requests        DocumentRequest[]
+  feedbacks       Feedback[]
+
+  @@unique([organizationId, code])
+  @@unique([organizationId, categoryId, departmentId, sequenceNo])
+  @@index([organizationId, categoryId, status])
+  @@index([organizationId, departmentId])
+  @@index([organizationId, nextReviewAt])
+}
+
+model Revision {
+  id             String         @id @default(uuid())
+  organizationId String
+  documentId     String
+  revisionNo     Int // 0 = first publication
+  status         RevisionStatus @default(DRAFT)
+  storageKey     String
+  pdfStorageKey  String?
+  fileSize       Int
+  checksum       String // SHA-256
+  editorKey      String // ONLYOFFICE document.key
+  changeSummary  String?
+  preparedById   String
+  approvedById   String?
+  approvedAt     DateTime?
+  publishedAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  document     Document     @relation("DocumentRevisions", fields: [documentId], references: [id], onDelete: Restrict)
+  preparedBy   User         @relation("RevisionPreparedBy", fields: [preparedById], references: [id], onDelete: Restrict)
+  approvedBy   User?        @relation("RevisionApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+
+  currentOf Document?         @relation("CurrentRevision")
+  requests  DocumentRequest[]
+
+  @@unique([documentId, revisionNo])
+  @@index([organizationId, documentId])
+}
+
+model DocumentRequest {
+  id             String        @id @default(uuid())
+  organizationId String
+  type           RequestType
+  status         RequestStatus @default(PENDING)
+  documentId     String?
+  revisionId     String?
+  requestedById  String
+  reason         String
+  createdAt      DateTime      @default(now())
+  resolvedAt     DateTime?
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  document     Document?      @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  revision     Revision?      @relation(fields: [revisionId], references: [id], onDelete: Restrict)
+  requestedBy  User           @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+  steps        ApprovalStep[]
+
+  @@index([organizationId, status])
+  @@index([documentId])
+}
+
+model ApprovalStep {
+  id             String           @id @default(uuid())
+  organizationId String
+  requestId      String
+  stepOrder      Int // 1: department approver, 2: quality manager
+  approverRole   UserRole
+  approverId     String?
+  decision       ApprovalDecision @default(PENDING)
+  comment        String?
+  decidedAt      DateTime?
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  request      DocumentRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  approver     User?           @relation(fields: [approverId], references: [id], onDelete: Restrict)
+
+  @@unique([requestId, stepOrder])
+  @@index([organizationId, approverRole, decision])
+}
+
+model Feedback {
+  id             String   @id @default(uuid())
+  organizationId String
+  documentId     String
+  userId         String
+  message        String
+  isResolved     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, isResolved])
+  @@index([documentId])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String?
+  action         String // e.g. "DOCUMENT_CREATED", "REVISION_SAVED"
+  entityType     String // e.g. "Document", "Revision"
+  entityId       String
+  metadata       Json?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, entityType, entityId])
+  @@index([organizationId, createdAt])
+}

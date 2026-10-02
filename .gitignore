@@ -23,3 +23,6 @@ Thumbs.db
 .vscode
 .idea
 *.log
+
+# Generated Prisma client
+apps/api/src/generated
