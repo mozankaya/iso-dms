@@ -1,9 +1,12 @@
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import * as argon2 from 'argon2';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../.env'), quiet: true });
 
+import { ObjectStorage, objectStorageOptionsFromEnv } from '../src/modules/storage/object-storage';
+import { FILE_TYPE_INFO } from '../src/modules/storage/storage-keys';
 import { createPrismaClient } from '../src/prisma/create-prisma-client';
 import { ensureBlankTemplateFiles } from './blank-templates';
 import { SEED_CATEGORIES, SEED_DEPARTMENTS, SEED_TEMPLATES } from './seed-data';
@@ -65,7 +68,10 @@ async function main() {
     }
 
     await ensureBlankTemplateFiles();
+    // Template files are uploaded to object storage too, so the storage service must be running
+    const storage = new ObjectStorage(objectStorageOptionsFromEnv());
     for (const template of SEED_TEMPLATES) {
+      const storageKey = `${organizationId}/templates/${template.fileName}`;
       const existing = await prisma.template.findFirst({
         where: { organizationId, name: template.name, fileType: template.fileType },
       });
@@ -75,11 +81,15 @@ async function main() {
             organizationId,
             name: template.name,
             fileType: template.fileType,
-            // Placeholder key: the file is uploaded to object storage once modules/storage exists.
-            storageKey: `${organizationId}/templates/${template.fileName}`,
+            storageKey,
             isDefault: true,
           },
         });
+      }
+
+      if (!(await storage.exists(existing?.storageKey ?? storageKey))) {
+        const file = await readFile(path.resolve(__dirname, '../templates', template.fileName));
+        await storage.put(existing?.storageKey ?? storageKey, file, FILE_TYPE_INFO[template.fileType].mimeType);
       }
     }
 
