@@ -42,7 +42,8 @@ async function parseError(response: Response): Promise<ApiError> {
 
 async function send(path: string, init: RequestInit, withToken: boolean): Promise<Response> {
   const headers = new Headers(init.headers);
-  if (init.body && !headers.has("Content-Type")) {
+  // FormData needs the browser to set the multipart boundary itself
+  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   if (withToken && accessToken) {

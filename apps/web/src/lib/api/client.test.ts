@@ -104,6 +104,31 @@ describe("apiFetch", () => {
   });
 });
 
+describe("request bodies", () => {
+  it("lets the browser set the multipart boundary for FormData", async () => {
+    client.setAccessToken("token");
+    fetchMock.mockResolvedValueOnce(json(201, { ok: true }));
+    const body = new FormData();
+    body.set("file", new File(["x"], "a.docx"));
+
+    await client.apiFetch("/documents/upload", { method: "POST", body });
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.body).toBe(body);
+    expect(new Headers(init.headers).has("Content-Type")).toBe(false);
+  });
+
+  it("sends JSON bodies as application/json", async () => {
+    client.setAccessToken("token");
+    fetchMock.mockResolvedValueOnce(json(201, { ok: true }));
+
+    await client.apiFetch("/documents", { method: "POST", body: JSON.stringify({ a: 1 }) });
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
+  });
+});
+
 describe("apiFetchPublic", () => {
   it("never refreshes: a 401 from login is a credentials error", async () => {
     client.setAccessToken("token");

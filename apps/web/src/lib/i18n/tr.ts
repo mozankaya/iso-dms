@@ -73,6 +73,44 @@ export const tr = {
       WITHDRAWN: "GEÇERSİZ",
     },
   },
+  newDocument: {
+    button: "Yeni Doküman",
+    title: "Yeni Doküman",
+    category: "Kategori",
+    selectCategory: "Kategori seçin",
+    department: "Birim",
+    selectDepartment: "Birim seçin",
+    departmentLocked: "Yalnızca kendi biriminizde doküman oluşturabilirsiniz.",
+    noDepartment: "Hesabınıza bir birim atanmamış. Doküman oluşturmak için yöneticinizle iletişime geçin.",
+    documentTitle: "Doküman Adı",
+    fileType: "Dosya Türü",
+    word: "Word (.docx)",
+    excel: "Excel (.xlsx)",
+    source: "Kaynak",
+    fromTemplate: "Şablondan oluştur",
+    fromUpload: "Mevcut dosyayı yükle",
+    template: "Şablon",
+    defaultTemplate: "Varsayılan şablon",
+    file: "Dosya",
+    fileHint: (maxMb: number) => `.docx veya .xlsx, en fazla ${maxMb} MB`,
+    detectedType: (label: string) => `Algılanan tür: ${label}`,
+    submit: "Doküman Oluştur",
+    submitting: "Oluşturuluyor...",
+    cancel: "Vazgeç",
+    created: (code: string) => `${code} kodlu doküman taslak olarak oluşturuldu.`,
+    dismiss: "Kapat",
+    validation: {
+      categoryRequired: "Kategori seçmelisiniz",
+      departmentRequired: "Birim seçmelisiniz",
+      titleRequired: "Doküman adı gerekli",
+      titleTooShort: "Doküman adı en az 3 karakter olmalı",
+      titleTooLong: "Doküman adı en fazla 200 karakter olabilir",
+      fileRequired: "Bir dosya seçin",
+      fileTypeUnsupported: "Yalnızca .docx ve .xlsx dosyaları yüklenebilir",
+      fileTooLarge: (maxMb: number) => `Dosya en fazla ${maxMb} MB olabilir`,
+      fileEmpty: "Seçilen dosya boş",
+    },
+  },
   nav: {
     home: "Ana Sayfa",
     categories: "Kategoriler",
@@ -86,6 +124,18 @@ export const tr = {
     TOO_MANY_REQUESTS: "Çok fazla deneme yaptınız. Lütfen biraz bekleyip tekrar deneyin.",
     NETWORK: "Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.",
     UNKNOWN: "Beklenmeyen bir hata oluştu.",
+    VALIDATION: "Girdiğiniz bilgileri kontrol edip tekrar deneyin.",
+    DEPARTMENT_NOT_ALLOWED: "Yalnızca kendi biriminizde doküman oluşturabilirsiniz.",
+    CATEGORY_NOT_FOUND: "Seçilen kategori bulunamadı.",
+    DEPARTMENT_NOT_FOUND: "Seçilen birim bulunamadı.",
+    TEMPLATE_NOT_FOUND: "Seçilen şablon bulunamadı.",
+    TEMPLATE_FILE_MISSING: "Şablon dosyasına ulaşılamadı. Lütfen yöneticinize bildirin.",
+    UNSUPPORTED_FILE_TYPE: "Yalnızca .docx ve .xlsx dosyaları yüklenebilir.",
+    INVALID_FILE_CONTENT: "Dosyanın içeriği uzantısıyla uyuşmuyor. Dosya bozuk olabilir.",
+    EMPTY_FILE: "Seçilen dosya boş.",
+    FILE_REQUIRED: "Bir dosya seçin.",
+    FILE_TOO_LARGE: "Dosya izin verilen boyutu aşıyor.",
+    TITLE_REQUIRED: "Doküman adı en az 3 karakter olmalı.",
   },
 } as const;
 
@@ -97,7 +147,9 @@ export function errorMessage(error: { code?: string; status?: number }): string 
     return tr.errors[error.code as ErrorCode];
   }
   if (error.status === 429) return tr.errors.TOO_MANY_REQUESTS;
+  if (error.status === 413) return tr.errors.FILE_TOO_LARGE;
   if (error.status === 401) return tr.errors.UNAUTHORIZED;
   if (error.status === 403) return tr.errors.FORBIDDEN;
+  if (error.status === 400) return tr.errors.VALIDATION;
   return tr.errors.UNKNOWN;
 }

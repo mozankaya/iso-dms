@@ -1,0 +1,15 @@
+import type { UserRole } from "@iso-dms/shared";
+
+/** Mirrors the API rules (PROJECT.md 6.4); the API enforces them, the UI only reflects them. */
+const DOCUMENT_CREATOR_ROLES: readonly UserRole[] = ["EDITOR", "APPROVER", "QUALITY_MANAGER", "ADMIN"];
+
+/** These roles may only create documents in their own department. */
+const DEPARTMENT_BOUND_ROLES: readonly UserRole[] = ["EDITOR", "APPROVER"];
+
+export function canCreateDocuments(role: UserRole | undefined): boolean {
+  return role !== undefined && DOCUMENT_CREATOR_ROLES.includes(role);
+}
+
+export function isDepartmentBound(role: UserRole | undefined): boolean {
+  return role !== undefined && DEPARTMENT_BOUND_ROLES.includes(role);
+}
