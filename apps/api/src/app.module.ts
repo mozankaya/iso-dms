@@ -9,6 +9,8 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { validateEnv } from './config/env.validation';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -24,6 +26,8 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     AuditLogsModule,
     AuthModule,
+    CategoriesModule,
+    DashboardModule,
   ],
   providers: [
     // Guard order matters: rate limit, then authentication, then role check.

@@ -10,7 +10,10 @@
     "prisma:seed": "prisma db seed",
     "typecheck": "tsc --noEmit",
     "build": "nest build",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "pretypecheck": "pnpm --filter @iso-dms/shared build",
+    "pretest": "pnpm --filter @iso-dms/shared build",
+    "prebuild": "pnpm --filter @iso-dms/shared build"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.7",
@@ -29,7 +32,8 @@
     "jszip": "^3.10.2",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "@iso-dms/shared": "workspace:*"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.24",
