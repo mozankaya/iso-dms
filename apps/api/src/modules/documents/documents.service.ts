@@ -3,6 +3,7 @@ import type { DocumentListItemDto, DocumentSortField, PaginatedDto, SortOrder } 
 import type { DocumentOrderByWithRelationInput, DocumentWhereInput } from '../../generated/prisma/models';
 import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DOCUMENT_LIST_SELECT, toDocumentListItem } from './document-list-item';
 import type { ListDocumentsDto } from './dto/list-documents.dto';
 
 @Injectable()
@@ -20,34 +21,12 @@ export class DocumentsService {
         orderBy,
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
-        select: {
-          id: true,
-          code: true,
-          title: true,
-          fileType: true,
-          status: true,
-          categoryId: true,
-          firstPublishedAt: true,
-          revisedAt: true,
-          department: { select: { id: true, name: true, code: true } },
-          currentRevision: { select: { revisionNo: true } },
-        },
+        select: DOCUMENT_LIST_SELECT,
       }),
     ]);
 
     return {
-      items: documents.map((document) => ({
-        id: document.id,
-        code: document.code,
-        title: document.title,
-        fileType: document.fileType,
-        status: document.status,
-        categoryId: document.categoryId,
-        department: document.department,
-        firstPublishedAt: document.firstPublishedAt?.toISOString() ?? null,
-        revisedAt: document.revisedAt?.toISOString() ?? null,
-        revisionNo: document.currentRevision?.revisionNo ?? null,
-      })),
+      items: documents.map(toDocumentListItem),
       total,
       page: query.page,
       pageSize: query.pageSize,

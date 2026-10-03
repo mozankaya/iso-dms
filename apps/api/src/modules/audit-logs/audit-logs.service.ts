@@ -16,8 +16,9 @@ export interface AuditLogEntry {
 export class AuditLogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async log(entry: AuditLogEntry): Promise<void> {
-    await this.prisma.auditLog.create({
+  /** Pass a transaction client to make the entry part of the caller's transaction. */
+  async log(entry: AuditLogEntry, client: Pick<PrismaService, 'auditLog'> = this.prisma): Promise<void> {
+    await client.auditLog.create({
       data: {
         organizationId: entry.organizationId,
         userId: entry.userId ?? null,

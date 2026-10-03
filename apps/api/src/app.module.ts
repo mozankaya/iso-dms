@@ -13,6 +13,8 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { TemplatesModule } from './modules/templates/templates.module';
+import { StorageModule } from './modules/storage/storage.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -26,12 +28,14 @@ import { PrismaModule } from './prisma/prisma.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 200 }]),
     JwtModule.register({ global: true }),
     PrismaModule,
+    StorageModule,
     AuditLogsModule,
     AuthModule,
     CategoriesModule,
     DashboardModule,
     DepartmentsModule,
     DocumentsModule,
+    TemplatesModule,
   ],
   providers: [
     // Guard order matters: rate limit, then authentication, then role check.

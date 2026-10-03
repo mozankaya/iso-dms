@@ -58,3 +58,23 @@ export interface DocumentListQuery {
   sortBy?: DocumentSortField;
   sortOrder?: SortOrder;
 }
+
+export interface TemplateDto {
+  id: string;
+  name: string;
+  fileType: FileType;
+  /** null for templates available in every category */
+  categoryId: string | null;
+  isDefault: boolean;
+}
+
+/** Default upload limit; the API enforces its own MAX_UPLOAD_MB setting. */
+export const DEFAULT_MAX_UPLOAD_MB = 25;
+
+export interface CreateDocumentRequest {
+  categoryId: string;
+  departmentId: string;
+  title: string;
+  fileType: FileType;
+  templateId?: string;
+}
