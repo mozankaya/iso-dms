@@ -11,6 +11,8 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { DepartmentsModule } from './modules/departments/departments.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -28,6 +30,8 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     CategoriesModule,
     DashboardModule,
+    DepartmentsModule,
+    DocumentsModule,
   ],
   providers: [
     // Guard order matters: rate limit, then authentication, then role check.

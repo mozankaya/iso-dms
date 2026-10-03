@@ -13,7 +13,8 @@
     "start": "node dist/main.js",
     "pretypecheck": "pnpm --filter @iso-dms/shared build",
     "pretest": "pnpm --filter @iso-dms/shared build",
-    "prebuild": "pnpm --filter @iso-dms/shared build"
+    "prebuild": "pnpm --filter @iso-dms/shared build",
+    "seed:demo": "tsx prisma/seed-demo.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.7",
