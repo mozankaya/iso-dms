@@ -5,7 +5,8 @@
     "rootDir": ".",
     "types": [
       "node",
-      "jest"
+      "jest",
+      "multer"
     ],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

@@ -3,7 +3,12 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "types": ["node"]
+    "types": [
+      "node",
+      "multer"
+    ]
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }
