@@ -3,8 +3,22 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": ".",
-    "types": ["node", "jest"]
+    "types": [
+      "node",
+      "jest"
+    ],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false
   },
-  "include": ["src", "prisma", "test", "prisma.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src",
+    "prisma",
+    "test",
+    "prisma.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

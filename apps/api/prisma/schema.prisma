@@ -72,6 +72,7 @@ model Organization {
   approvalSteps    ApprovalStep[]
   feedbacks        Feedback[]
   auditLogs        AuditLog[]
+  refreshTokens    RefreshToken[]
 }
 
 model Department {
@@ -116,6 +117,7 @@ model User {
   approvalSteps     ApprovalStep[]
   feedbacks         Feedback[]
   auditLogs         AuditLog[]
+  refreshTokens     RefreshToken[]
 
   @@unique([organizationId, email])
   @@index([organizationId, departmentId])
@@ -303,4 +305,19 @@ model AuditLog {
 
   @@index([organizationId, entityType, entityId])
   @@index([organizationId, createdAt])
+}
+
+model RefreshToken {
+  id             String    @id @default(uuid())
+  organizationId String
+  userId         String
+  tokenHash      String    @unique // SHA-256 of the opaque token
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, userId])
 }
