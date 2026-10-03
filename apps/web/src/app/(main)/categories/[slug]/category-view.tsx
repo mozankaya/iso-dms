@@ -2,6 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { Suspense } from "react";
+import { DocumentList } from "@/components/documents/document-list";
 import { getCategories } from "@/lib/api/endpoints";
 import { tr } from "@/lib/i18n/tr";
 
@@ -23,9 +25,11 @@ export function CategoryView({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{category.name}</h1>
-      <p className="text-muted">{tr.category.comingSoon}</p>
+      <Suspense fallback={<p className="text-muted">{tr.common.loading}</p>}>
+        <DocumentList categoryId={category.id} />
+      </Suspense>
     </div>
   );
 }
