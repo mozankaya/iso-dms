@@ -81,16 +81,50 @@ export interface CreateDocumentRequest {
   templateId?: string;
 }
 
+export const REVISION_STATUSES = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'SUPERSEDED'] as const;
+export type RevisionStatus = (typeof REVISION_STATUSES)[number];
+
 export interface RevisionSummaryDto {
   id: string;
   revisionNo: number;
-  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUPERSEDED';
+  status: RevisionStatus;
 }
 
-/** A document plus the revision the editor opens for the current user. */
+export interface PersonDto {
+  id: string;
+  fullName: string;
+}
+
+/** One row of a document's revision history. */
+export interface RevisionHistoryItemDto extends RevisionSummaryDto {
+  /** Whether this is the revision currently in force */
+  isCurrent: boolean;
+  preparedBy: PersonDto;
+  approvedBy: PersonDto | null;
+  /** ISO 8601 timestamps */
+  approvedAt: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+  changeSummary: string | null;
+  fileSize: number;
+  /** Whether the current user may edit this revision */
+  canEdit: boolean;
+}
+
+/** A document with everything the detail page shows, plus the revision the editor opens for the current user. */
 export interface DocumentDetailDto extends DocumentListItemDto {
   /** Null when the user may not open any revision of the document */
   openRevision: RevisionSummaryDto | null;
+  category: { id: string; name: string; slug: string };
+  owner: PersonDto;
+  /** The revision in force, null for documents that were never published */
+  currentRevisionId: string | null;
+  reviewIntervalMonths: number | null;
+  nextReviewAt: string | null;
+  retentionYears: number | null;
+  withdrawnAt: string | null;
+  withdrawalReason: string | null;
+  createdAt: string;
 }
 
 export type EditorMode = 'edit' | 'view';

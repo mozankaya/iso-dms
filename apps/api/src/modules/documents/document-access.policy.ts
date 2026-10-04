@@ -37,6 +37,12 @@ export function visibilityFilter(user: AuthenticatedUser): DocumentWhereInput | 
   return undefined;
 }
 
+/** Where clause for one document by id, limited to the organization and to what the user may see. */
+export function visibleDocumentWhere(user: AuthenticatedUser, id: string): DocumentWhereInput {
+  const visibility = visibilityFilter(user);
+  return { id, organizationId: user.organizationId, ...(visibility && { AND: [visibility] }) };
+}
+
 interface DocumentForAccess {
   status: DocumentStatus;
   departmentId: string;

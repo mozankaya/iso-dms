@@ -91,6 +91,16 @@ export class ObjectStorage {
     return response.Body as Readable;
   }
 
+  /** Like getStream, but returns null when the object does not exist. */
+  async tryGetStream(key: string): Promise<Readable | null> {
+    try {
+      return await this.getStream(key);
+    } catch (error) {
+      if (isNotFound(error)) return null;
+      throw error;
+    }
+  }
+
   async getBuffer(key: string): Promise<Buffer> {
     const stream = await this.getStream(key);
     const chunks: Buffer[] = [];

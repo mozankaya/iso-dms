@@ -9,7 +9,13 @@ import type {
 import type { DocumentOrderByWithRelationInput, DocumentWhereInput } from '../../generated/prisma/models';
 import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PrismaService } from '../../prisma/prisma.service';
-import { canEditListedDocument, canEditRevision, canViewRevision, visibilityFilter } from './document-access.policy';
+import {
+  canEditListedDocument,
+  canEditRevision,
+  canViewRevision,
+  visibilityFilter,
+  visibleDocumentWhere,
+} from './document-access.policy';
 import { DOCUMENT_LIST_SELECT, toDocumentListItem } from './document-list-item';
 import type { ListDocumentsDto } from './dto/list-documents.dto';
 
@@ -50,13 +56,20 @@ export class DocumentsService {
    * may view it, otherwise the revision in force. Documents outside the user's visibility are not found.
    */
   async findOne(user: AuthenticatedUser, id: string): Promise<DocumentDetailDto> {
-    const visibility = visibilityFilter(user);
     const document = await this.prisma.document.findFirst({
-      where: { id, organizationId: user.organizationId, ...(visibility && { AND: [visibility] }) },
+      where: visibleDocumentWhere(user, id),
       select: {
         ...DOCUMENT_LIST_SELECT,
         departmentId: true,
         currentRevisionId: true,
+        reviewIntervalMonths: true,
+        nextReviewAt: true,
+        retentionYears: true,
+        withdrawnAt: true,
+        withdrawalReason: true,
+        createdAt: true,
+        category: { select: { id: true, name: true, slug: true } },
+        owner: { select: { id: true, fullName: true } },
         revisions: {
           orderBy: { revisionNo: 'desc' },
           select: { id: true, revisionNo: true, status: true },
@@ -73,7 +86,19 @@ export class DocumentsService {
     const openRevision = openDraft ?? inForce ?? viewable[0] ?? null;
 
     const canEdit = openRevision !== null && canEditRevision(user, document, openRevision);
-    return { ...toDocumentListItem(document, canEdit), openRevision };
+    return {
+      ...toDocumentListItem(document, canEdit),
+      openRevision,
+      category: document.category,
+      owner: document.owner,
+      currentRevisionId: document.currentRevisionId,
+      reviewIntervalMonths: document.reviewIntervalMonths,
+      nextReviewAt: document.nextReviewAt?.toISOString() ?? null,
+      retentionYears: document.retentionYears,
+      withdrawnAt: document.withdrawnAt?.toISOString() ?? null,
+      withdrawalReason: document.withdrawalReason,
+      createdAt: document.createdAt.toISOString(),
+    };
   }
 
   /** Visibility rules live in document-access.policy.ts. */

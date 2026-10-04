@@ -64,11 +64,8 @@ export class EditorController {
       throw new NotFoundException({ code: 'REVISION_NOT_FOUND', message: 'Revision not found' });
     }
 
-    let stream;
-    try {
-      stream = await this.storage.getStream(revision.storageKey);
-    } catch (error) {
-      if ((error as { name?: string }).name !== 'NoSuchKey') throw error;
+    const stream = await this.storage.tryGetStream(revision.storageKey);
+    if (!stream) {
       this.logger.error(`The file of revision ${revisionId} is missing from storage (${revision.storageKey})`);
       throw new NotFoundException({ code: 'REVISION_FILE_MISSING', message: 'The revision file is missing' });
     }
