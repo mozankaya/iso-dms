@@ -8,7 +8,7 @@ import { OnlyOfficeEditor } from "@/components/editor/onlyoffice-editor";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
-import { getCategories, getDocument, getEditorSession } from "@/lib/api/endpoints";
+import { getDocument, getEditorSession } from "@/lib/api/endpoints";
 import { errorMessage, tr } from "@/lib/i18n/tr";
 import { loadOnlyOfficeApi } from "@/lib/onlyoffice/load-api";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,14 @@ function messageFor(error: unknown): string {
   return error instanceof ApiError ? errorMessage(error) : tr.errors.NETWORK;
 }
 
-export function EditorScreen({ documentId }: { documentId: string }) {
+export function EditorScreen({
+  documentId,
+  requestedRevisionId,
+}: {
+  documentId: string;
+  /** A specific revision to open (from the revision history); by default the one the API picks */
+  requestedRevisionId?: string;
+}) {
   const [editorError, setEditorError] = useState<string | null>(null);
 
   const document = useQuery({
@@ -38,7 +45,7 @@ export function EditorScreen({ documentId }: { documentId: string }) {
     queryFn: () => getDocument(documentId),
     gcTime: 0,
   });
-  const revisionId = document.data?.openRevision?.id;
+  const revisionId = requestedRevisionId ?? document.data?.openRevision?.id;
 
   // The configuration holds short-lived tokens and defines the running editor: it is fetched once per visit
   // and never refreshed in the background (a new object would restart the editor under the user's hands).
@@ -61,15 +68,14 @@ export function EditorScreen({ documentId }: { documentId: string }) {
     staleTime: Infinity,
     retry: false,
   });
-  const categories = useQuery({ queryKey: ["categories"], queryFn: getCategories });
 
-  const category = categories.data?.find((item) => item.id === document.data?.categoryId);
-  const backHref = category ? `/categories/${category.slug}` : "/";
+  // Back to the page the user came from: the document's detail page
+  const backHref = `/documents/${documentId}`;
 
   let body;
   if (document.isError) {
     body = <Notice message={messageFor(document.error)} onRetry={() => document.refetch()} />;
-  } else if (document.data && !document.data.openRevision) {
+  } else if (document.data && !revisionId) {
     body = <Notice message={tr.editor.noRevision} />;
   } else if (session.isError) {
     body = <Notice message={messageFor(session.error)} onRetry={() => session.refetch()} />;
@@ -113,8 +119,10 @@ export function EditorScreen({ documentId }: { documentId: string }) {
             <span className="font-mono text-sm text-muted">{document.data.code}</span>
             <h1 className="min-w-0 truncate font-medium">{document.data.title}</h1>
             <StatusBadge status={document.data.status} />
-            {document.data.openRevision && (
-              <span className="text-sm text-muted">{tr.editor.revision(document.data.openRevision.revisionNo)}</span>
+            {(session.data?.revision ?? document.data.openRevision) && (
+              <span className="text-sm text-muted">
+                {tr.editor.revision((session.data?.revision ?? document.data.openRevision)!.revisionNo)}
+              </span>
             )}
           </div>
         )}

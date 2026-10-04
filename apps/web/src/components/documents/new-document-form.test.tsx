@@ -102,7 +102,7 @@ describe("NewDocumentForm", () => {
     expect(screen.getByLabelText(t.category)).toHaveValue("cat-fr");
   });
 
-  it("creates a document from the default template and goes to the category list", async () => {
+  it("creates a document from the default template and opens it in the editor", async () => {
     renderForm({ initialCategoryId: "cat-pr" });
     await select(t.department, "dep-kk");
     await userEvent.type(screen.getByLabelText(t.documentTitle), "  Doküman Kontrol Prosedürü ");
@@ -118,7 +118,7 @@ describe("NewDocumentForm", () => {
         templateId: undefined,
       }),
     );
-    expect(push).toHaveBeenCalledWith("/categories/procedures?created=PR-KK-001");
+    expect(push).toHaveBeenCalledWith("/documents/d1/edit");
   });
 
   it("offers the templates of the category and sends the chosen one", async () => {
@@ -192,7 +192,7 @@ describe("NewDocumentForm", () => {
         }),
       );
       expect(createDocument).not.toHaveBeenCalled();
-      expect(push).toHaveBeenCalledWith("/categories/procedures?created=PR-KK-002");
+      expect(push).toHaveBeenCalledWith("/documents/d2/edit");
     });
 
     it("keeps a title the user already typed", async () => {

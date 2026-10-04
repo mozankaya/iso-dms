@@ -109,8 +109,8 @@ export function NewDocumentForm({
     try {
       const created = await create.mutateAsync(values);
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
-      const slug = categories.find((category) => category.id === values.categoryId)?.slug;
-      router.push(`/categories/${slug}?created=${encodeURIComponent(created.code)}`);
+      // A new document opens straight in the editor (PROJECT.md 6.2 rule 1)
+      router.push(`/documents/${created.id}/edit`);
     } catch (error) {
       setServerError(error instanceof ApiError ? errorMessage(error) : tr.errors.NETWORK);
     }

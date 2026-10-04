@@ -10,6 +10,7 @@ import type {
   EditorSessionDto,
   FileType,
   PaginatedDto,
+  RevisionHistoryItemDto,
   TemplateDto,
 } from "@iso-dms/shared";
 import { apiFetch, apiFetchPublic } from "./client";
@@ -77,3 +78,13 @@ export function getDocument(id: string): Promise<DocumentDetailDto> {
 export function getEditorSession(revisionId: string): Promise<EditorSessionDto> {
   return apiFetch<EditorSessionDto>(`/editor/config/${encodeURIComponent(revisionId)}`);
 }
+
+export function getRevisions(documentId: string): Promise<RevisionHistoryItemDto[]> {
+  return apiFetch<RevisionHistoryItemDto[]>(`/documents/${encodeURIComponent(documentId)}/revisions`);
+}
+
+/** API paths of the two download endpoints (see lib/download.ts for saving the result). */
+export const downloadPath = {
+  revision: (revisionId: string) => `/revisions/${encodeURIComponent(revisionId)}/download`,
+  current: (documentId: string) => `/documents/${encodeURIComponent(documentId)}/download`,
+};

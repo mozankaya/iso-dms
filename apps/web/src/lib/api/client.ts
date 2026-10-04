@@ -75,7 +75,8 @@ export function refreshSession(): Promise<AuthResponseDto> {
   return refreshInFlight;
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+/** Authenticated request: refreshes the session once on 401 and retries. Throws ApiError for error statuses. */
+async function authenticatedRequest(path: string, init: RequestInit): Promise<Response> {
   let response = await send(path, init, true);
 
   if (response.status === 401 && accessToken) {
@@ -89,8 +90,41 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   }
 
   if (!response.ok) throw await parseError(response);
+  return response;
+}
+
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await authenticatedRequest(path, init);
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+/** Downloads a file with the user's token; the file name comes from the Content-Disposition header. */
+export async function apiDownload(path: string): Promise<{ blob: Blob; fileName: string | null }> {
+  const response = await authenticatedRequest(path, {});
+  return {
+    blob: await response.blob(),
+    fileName: parseContentDispositionFileName(response.headers.get("Content-Disposition")),
+  };
+}
+
+/**
+ * File name from a Content-Disposition header. The UTF-8 form (filename*) wins because it carries
+ * Turkish characters intact; the plain form is the ASCII fallback.
+ */
+export function parseContentDispositionFileName(header: string | null): string | null {
+  if (!header) return null;
+
+  const encoded = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(header);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim());
+    } catch {
+      // malformed escape sequence: use the fallback
+    }
+  }
+  const plain = /filename\s*=\s*"([^"]*)"|filename\s*=\s*([^;]+)/i.exec(header);
+  return (plain?.[1] ?? plain?.[2])?.trim() || null;
 }
 
 /** Requests that must not trigger a refresh (login, logout). */

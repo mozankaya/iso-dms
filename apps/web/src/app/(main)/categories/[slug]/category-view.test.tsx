@@ -8,7 +8,6 @@ import { CategoryView } from "./category-view";
 let role: UserRole = "EDITOR";
 
 vi.mock("@/components/documents/document-list", () => ({ DocumentList: () => <div>document list</div> }));
-vi.mock("@/components/documents/created-notice", () => ({ CreatedNotice: () => null }));
 vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => ({ status: "authenticated", user: { id: "u1", role }, login: vi.fn(), logout: vi.fn() }),
 }));

@@ -104,6 +104,69 @@ describe("apiFetch", () => {
   });
 });
 
+describe("parseContentDispositionFileName", () => {
+  it("prefers the UTF-8 name, which keeps Turkish characters", () => {
+    const header = `attachment; filename="PR-KK-001 Egitim (Rev 1).docx"; filename*=UTF-8''PR-KK-001%20E%C4%9Fitim%20%28Rev%201%29.docx`;
+    expect(client.parseContentDispositionFileName(header)).toBe("PR-KK-001 Eğitim (Rev 1).docx");
+  });
+
+  it("falls back to the plain name", () => {
+    expect(client.parseContentDispositionFileName('attachment; filename="report.docx"')).toBe("report.docx");
+    expect(client.parseContentDispositionFileName("attachment; filename=report.docx")).toBe("report.docx");
+  });
+
+  it("falls back to the plain name when the UTF-8 name is malformed", () => {
+    expect(client.parseContentDispositionFileName(`attachment; filename="a.docx"; filename*=UTF-8''%E0%A4%A`)).toBe("a.docx");
+  });
+
+  it("returns null when there is no usable name", () => {
+    expect(client.parseContentDispositionFileName(null)).toBeNull();
+    expect(client.parseContentDispositionFileName("attachment")).toBeNull();
+    expect(client.parseContentDispositionFileName('attachment; filename=""')).toBeNull();
+  });
+});
+
+describe("apiDownload", () => {
+  it("returns the file and the name the server chose, using the user's token", async () => {
+    client.setAccessToken("token-1");
+    fetchMock.mockResolvedValueOnce(
+      new Response("file content", {
+        status: 200,
+        headers: { "Content-Disposition": `attachment; filename*=UTF-8''%C5%9Eablon.docx` },
+      }),
+    );
+
+    const { blob, fileName } = await client.apiDownload("/revisions/r1/download");
+
+    expect(fileName).toBe("Şablon.docx");
+    expect(await blob.text()).toBe("file content");
+    expect(authHeader(fetchMock.mock.calls[0])).toBe("Bearer token-1");
+  });
+
+  it("refreshes the session once when the token expired, like any other request", async () => {
+    client.setAccessToken("expired");
+    fetchMock
+      .mockResolvedValueOnce(json(401, { statusCode: 401 }))
+      .mockResolvedValueOnce(refreshOk("fresh"))
+      .mockResolvedValueOnce(new Response("data", { status: 200 }));
+
+    const { fileName } = await client.apiDownload("/revisions/r1/download");
+
+    expect(fileName).toBeNull();
+    expect(authHeader(fetchMock.mock.calls[2])).toBe("Bearer fresh");
+  });
+
+  it("throws the API error with its code", async () => {
+    client.setAccessToken("token");
+    fetchMock.mockResolvedValueOnce(json(404, { statusCode: 404, code: "REVISION_FILE_MISSING" }));
+
+    await expect(client.apiDownload("/revisions/r1/download")).rejects.toMatchObject({
+      status: 404,
+      code: "REVISION_FILE_MISSING",
+    });
+  });
+});
+
 describe("request bodies", () => {
   it("lets the browser set the multipart boundary for FormData", async () => {
     client.setAccessToken("token");

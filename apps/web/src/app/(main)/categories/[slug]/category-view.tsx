@@ -3,7 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Suspense } from "react";
-import { CreatedNotice } from "@/components/documents/created-notice";
 import { DocumentList } from "@/components/documents/document-list";
 import { buttonVariants } from "@/components/ui/button";
 import { getCategories } from "@/lib/api/endpoints";
@@ -40,7 +39,6 @@ export function CategoryView({ slug }: { slug: string }) {
         )}
       </div>
       <Suspense fallback={<p className="text-muted">{tr.common.loading}</p>}>
-        <CreatedNotice />
         <DocumentList categoryId={category.id} />
       </Suspense>
     </div>

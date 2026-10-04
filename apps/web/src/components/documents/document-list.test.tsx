@@ -24,7 +24,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => ({ status: "authenticated", user: { id: "u1", role }, login: vi.fn(), logout: vi.fn() }),
 }));
-vi.mock("@/lib/api/endpoints", () => ({
+vi.mock("@/lib/api/endpoints", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api/endpoints")>()),
   getDocuments: (query: unknown) => getDocuments(query),
   getDepartments: () => getDepartments(),
 }));
@@ -96,6 +97,29 @@ describe("DocumentList", () => {
     expect(within(table).getByRole("columnheader", { name: tr.documents.columns.actions })).toBeInTheDocument();
     expect(within(table).getByRole("link", { name: tr.documents.actions.edit })).toHaveAttribute("href", "/documents/d-edit/edit");
     expect(within(table).getByRole("link", { name: tr.documents.actions.view })).toHaveAttribute("href", "/documents/d-view/edit");
+  });
+
+  it("links the code and the title to the detail page", async () => {
+    getDocuments.mockResolvedValue(page([item({ id: "d-1", code: "PR-KK-001", title: "Doküman Kontrol Prosedürü" })]));
+    renderList();
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("link", { name: "PR-KK-001" })).toHaveAttribute("href", "/documents/d-1");
+    expect(within(table).getByRole("link", { name: "Doküman Kontrol Prosedürü" })).toHaveAttribute("href", "/documents/d-1");
+  });
+
+  it("offers a download only for documents that have a revision in force", async () => {
+    getDocuments.mockResolvedValue(
+      page([
+        item({ id: "d-live", code: "PR-KK-001", revisionNo: 2 }),
+        item({ id: "d-draft", code: "PR-KK-002", status: "DRAFT", revisionNo: null, canEdit: true }),
+      ]),
+    );
+    renderList();
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("button", { name: `${tr.detail.download} (PR-KK-001)` })).toBeInTheDocument();
+    expect(within(table).queryByRole("button", { name: `${tr.detail.download} (PR-KK-002)` })).not.toBeInTheDocument();
   });
 
   it("does not make the actions column sortable", async () => {

@@ -3,7 +3,8 @@
 import { DOCUMENT_SORT_FIELDS, type DocumentListItemDto, type DocumentSortField, type SortOrder } from "@iso-dms/shared";
 import { createColumnHelper, tableFeatures, useTable } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
-import { DocumentActionLink } from "@/components/documents/document-action-link";
+import Link from "next/link";
+import { DocumentActions } from "@/components/documents/document-actions";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { formatDate } from "@/lib/format";
 import { tr } from "@/lib/i18n/tr";
@@ -17,14 +18,26 @@ const columns = columnHelper.columns([
   columnHelper.accessor("code", {
     id: "code",
     header: tr.documents.columns.code,
-    cell: (info) => <span className="font-mono text-sm">{info.getValue()}</span>,
+    cell: (info) => (
+      <Link
+        href={`/documents/${info.row.original.id}`}
+        className="font-mono text-sm text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+      >
+        {info.getValue()}
+      </Link>
+    ),
   }),
   columnHelper.accessor("title", {
     id: "title",
     header: tr.documents.columns.title,
     cell: (info) => (
       <span className="flex flex-wrap items-center gap-2">
-        {info.getValue()}
+        <Link
+          href={`/documents/${info.row.original.id}`}
+          className="hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          {info.getValue()}
+        </Link>
         {info.row.original.status !== "PUBLISHED" && <StatusBadge status={info.row.original.status} />}
       </span>
     ),
@@ -51,7 +64,7 @@ const columns = columnHelper.columns([
   columnHelper.display({
     id: "actions",
     header: tr.documents.columns.actions,
-    cell: (info) => <DocumentActionLink document={info.row.original} />,
+    cell: (info) => <DocumentActions document={info.row.original} />,
   }),
 ]);
 

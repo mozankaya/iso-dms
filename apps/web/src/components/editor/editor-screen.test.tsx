@@ -1,6 +1,7 @@
 import type { DocumentDetailDto, EditorSessionDto } from "@iso-dms/shared";
+import { documentDetail as detailFixture } from "@/test/fixtures";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/client";
@@ -9,14 +10,12 @@ import { EditorScreen } from "./editor-screen";
 
 const getDocument = vi.fn();
 const getEditorSession = vi.fn();
-const getCategories = vi.fn();
 const loadOnlyOfficeApi = vi.fn();
 let reportEditorError: (description: string) => void = () => undefined;
 
 vi.mock("@/lib/api/endpoints", () => ({
   getDocument: (id: string) => getDocument(id),
   getEditorSession: (id: string) => getEditorSession(id),
-  getCategories: () => getCategories(),
 }));
 vi.mock("@/lib/onlyoffice/load-api", () => ({ loadOnlyOfficeApi: () => loadOnlyOfficeApi() }));
 vi.mock("@/components/editor/onlyoffice-editor", () => ({
@@ -30,21 +29,14 @@ const DOCUMENT_ID = "doc-1";
 const REVISION_ID = "rev-1";
 
 function documentDetail(overrides: Partial<DocumentDetailDto> = {}): DocumentDetailDto {
-  return {
+  return detailFixture({
     id: DOCUMENT_ID,
-    code: "PR-KK-001",
-    title: "Doküman Kontrol Prosedürü",
-    fileType: "DOCX",
     status: "DRAFT",
-    categoryId: "cat-pr",
-    department: { id: "d1", name: "Kalite", code: "KK" },
-    firstPublishedAt: null,
-    revisedAt: null,
-    revisionNo: null,
     canEdit: true,
+    revisionNo: null,
     openRevision: { id: REVISION_ID, revisionNo: 0, status: "DRAFT" },
     ...overrides,
-  };
+  });
 }
 
 function session(overrides: Partial<EditorSessionDto> = {}): EditorSessionDto {
@@ -57,11 +49,11 @@ function session(overrides: Partial<EditorSessionDto> = {}): EditorSessionDto {
   };
 }
 
-function renderScreen() {
+function renderScreen(requestedRevisionId?: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <EditorScreen documentId={DOCUMENT_ID} />
+      <EditorScreen documentId={DOCUMENT_ID} requestedRevisionId={requestedRevisionId} />
     </QueryClientProvider>,
   );
 }
@@ -69,11 +61,9 @@ function renderScreen() {
 beforeEach(() => {
   getDocument.mockReset();
   getEditorSession.mockReset();
-  getCategories.mockReset();
   loadOnlyOfficeApi.mockReset();
   getDocument.mockResolvedValue(documentDetail());
   getEditorSession.mockResolvedValue(session());
-  getCategories.mockResolvedValue([{ id: "cat-pr", name: "Prosedürler", slug: "procedures" }]);
   loadOnlyOfficeApi.mockResolvedValue(undefined);
 });
 
@@ -110,18 +100,33 @@ describe("EditorScreen", () => {
     expect(screen.queryByText(tr.editor.autosaveHint)).not.toBeInTheDocument();
   });
 
-  it("links back to the category of the document", async () => {
-    renderScreen();
-
-    await waitFor(() => expect(screen.getByRole("link", { name: tr.editor.back })).toHaveAttribute("href", "/categories/procedures"));
-  });
-
-  it("links back to the home page while the category is unknown", async () => {
-    getCategories.mockResolvedValue([]);
+  it("links back to the detail page of the document", async () => {
     renderScreen();
     await screen.findByTestId("editor");
 
-    expect(screen.getByRole("link", { name: tr.editor.back })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: tr.editor.back })).toHaveAttribute("href", `/documents/${DOCUMENT_ID}`);
+  });
+
+  it("opens the revision that was asked for instead of the one the API picks", async () => {
+    getEditorSession.mockResolvedValue(
+      session({ mode: "view", revision: { id: "rev-old", revisionNo: 0, status: "SUPERSEDED" } }),
+    );
+    renderScreen("rev-old");
+
+    await screen.findByTestId("editor");
+
+    expect(getEditorSession).toHaveBeenCalledWith("rev-old");
+    expect(getEditorSession).not.toHaveBeenCalledWith(REVISION_ID);
+    expect(screen.getByText(tr.editor.revision(0))).toBeInTheDocument();
+    expect(screen.getByText(tr.editor.modeView)).toBeInTheDocument();
+  });
+
+  it("can open a specific revision even when the document has no revision picked for it", async () => {
+    getDocument.mockResolvedValue(documentDetail({ openRevision: null, canEdit: false }));
+    renderScreen("rev-old");
+
+    expect(await screen.findByTestId("editor")).toBeInTheDocument();
+    expect(getEditorSession).toHaveBeenCalledWith("rev-old");
   });
 
   it("does not ask for a new configuration while the user works", async () => {
