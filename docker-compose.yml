@@ -38,6 +38,9 @@ services:
     environment:
       JWT_ENABLED: "true"
       JWT_SECRET: ${ONLYOFFICE_JWT_SECRET}
+      # Since 8.2 the document server refuses to call private addresses. It has to reach the API
+      # (host.docker.internal in development, the api service in Docker) to download files and post callbacks.
+      ALLOW_PRIVATE_IP_ADDRESS: "true"
     ports:
       - "8080:80"
     extra_hosts:
