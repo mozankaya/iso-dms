@@ -1,4 +1,5 @@
 import type { DocumentListItemDto } from "@iso-dms/shared";
+import { DocumentActionLink } from "@/components/documents/document-action-link";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
@@ -26,6 +27,7 @@ export function DocumentCards({ data }: { data: DocumentListItemDto[] }) {
               <dt className="text-muted">{tr.documents.columns.revisionNo}</dt>
               <dd>{document.revisionNo ?? "-"}</dd>
             </dl>
+            <DocumentActionLink document={document} />
           </Card>
         </li>
       ))}

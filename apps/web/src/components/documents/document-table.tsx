@@ -1,8 +1,9 @@
 "use client";
 
-import type { DocumentListItemDto, DocumentSortField, SortOrder } from "@iso-dms/shared";
+import { DOCUMENT_SORT_FIELDS, type DocumentListItemDto, type DocumentSortField, type SortOrder } from "@iso-dms/shared";
 import { createColumnHelper, tableFeatures, useTable } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { DocumentActionLink } from "@/components/documents/document-action-link";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { formatDate } from "@/lib/format";
 import { tr } from "@/lib/i18n/tr";
@@ -47,6 +48,11 @@ const columns = columnHelper.columns([
     header: tr.documents.columns.revisionNo,
     cell: (info) => info.getValue() ?? "-",
   }),
+  columnHelper.display({
+    id: "actions",
+    header: tr.documents.columns.actions,
+    cell: (info) => <DocumentActionLink document={info.row.original} />,
+  }),
 ]);
 
 const ARIA_SORT = { asc: "ascending", desc: "descending" } as const;
@@ -72,6 +78,13 @@ export function DocumentTable({
             <tr key={group.id}>
               {group.headers.map((header) => {
                 const field = header.column.id as DocumentSortField;
+                if (!DOCUMENT_SORT_FIELDS.includes(field)) {
+                  return (
+                    <th key={header.id} scope="col" className="px-4 py-3 font-medium whitespace-nowrap">
+                      <table.FlexRender header={header} />
+                    </th>
+                  );
+                }
                 const active = field === sortBy;
                 return (
                   <th

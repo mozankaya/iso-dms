@@ -3,12 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Home, LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { useState, type ReactNode } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
 import { getCategories } from "@/lib/api/endpoints";
-import { useAuth } from "@/lib/auth/auth-context";
+import { useRequireAuth } from "@/lib/auth/use-require-auth";
 import { tr } from "@/lib/i18n/tr";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +39,7 @@ function NavLink({
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { status, user, logout } = useAuth();
-  const router = useRouter();
+  const { status, user, logout } = useRequireAuth();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -49,10 +48,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     queryFn: getCategories,
     enabled: status === "authenticated",
   });
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.replace("/login");
-  }, [status, router]);
 
   const closeMenu = () => setMenuOpen(false);
 

@@ -4,8 +4,10 @@ import type {
   CreateDocumentRequest,
   DashboardStatsDto,
   DepartmentDto,
+  DocumentDetailDto,
   DocumentListItemDto,
   DocumentListQuery,
+  EditorSessionDto,
   FileType,
   PaginatedDto,
   TemplateDto,
@@ -66,4 +68,12 @@ export function uploadDocument(request: {
   body.set("title", request.title);
   body.set("file", request.file);
   return apiFetch<DocumentListItemDto>("/documents/upload", { method: "POST", body });
+}
+
+export function getDocument(id: string): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/documents/${encodeURIComponent(id)}`);
+}
+
+export function getEditorSession(revisionId: string): Promise<EditorSessionDto> {
+  return apiFetch<EditorSessionDto>(`/editor/config/${encodeURIComponent(revisionId)}`);
 }

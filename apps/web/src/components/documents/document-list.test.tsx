@@ -41,6 +41,7 @@ function item(overrides: Partial<DocumentListItemDto> = {}): DocumentListItemDto
     firstPublishedAt: "2025-01-10T09:00:00.000Z",
     revisedAt: "2025-06-01T09:00:00.000Z",
     revisionNo: 2,
+    canEdit: false,
     ...overrides,
   };
 }
@@ -80,6 +81,30 @@ describe("DocumentList", () => {
     expect(within(row).getByText("01.06.2025")).toBeInTheDocument();
     expect(within(row).getByText("2")).toBeInTheDocument();
     expect(within(row).queryByText(tr.documents.status.PUBLISHED)).not.toBeInTheDocument();
+  });
+
+  it("offers editing for documents the user may edit and viewing for the others", async () => {
+    getDocuments.mockResolvedValue(
+      page([
+        item({ id: "d-edit", code: "PR-KK-001", canEdit: true }),
+        item({ id: "d-view", code: "PR-KK-002", canEdit: false }),
+      ]),
+    );
+    renderList();
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", { name: tr.documents.columns.actions })).toBeInTheDocument();
+    expect(within(table).getByRole("link", { name: tr.documents.actions.edit })).toHaveAttribute("href", "/documents/d-edit/edit");
+    expect(within(table).getByRole("link", { name: tr.documents.actions.view })).toHaveAttribute("href", "/documents/d-view/edit");
+  });
+
+  it("does not make the actions column sortable", async () => {
+    renderList();
+    const table = await screen.findByRole("table");
+
+    const header = within(table).getByRole("columnheader", { name: tr.documents.columns.actions });
+    expect(within(header).queryByRole("button")).not.toBeInTheDocument();
+    expect(header).not.toHaveAttribute("aria-sort");
   });
 
   it("shows a status badge for non-published documents and dashes for missing values", async () => {

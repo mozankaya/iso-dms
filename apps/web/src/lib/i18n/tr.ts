@@ -46,6 +46,11 @@ export const tr = {
       firstPublishedAt: "İlk Yayın Tarihi",
       revisedAt: "Revizyon Tarihi",
       revisionNo: "Revizyon No",
+      actions: "İşlemler",
+    },
+    actions: {
+      edit: "Düzenle",
+      view: "Görüntüle",
     },
     tableLabel: "Doküman listesi",
     searchLabel: "Doküman ara",
@@ -111,6 +116,18 @@ export const tr = {
       fileEmpty: "Seçilen dosya boş",
     },
   },
+  editor: {
+    preparing: "Editör hazırlanıyor...",
+    back: "Geri dön",
+    modeEdit: "Düzenleme",
+    modeView: "Salt okunur",
+    autosaveHint: "Değişiklikler otomatik kaydedilir.",
+    notFound: "Doküman bulunamadı ya da bu dokümana erişim yetkiniz yok.",
+    noRevision: "Bu doküman için açılabilir bir sürüm yok.",
+    serverUnreachable: "Editör sunucusuna ulaşılamadı. ONLYOFFICE servisinin çalıştığından emin olun.",
+    editorError: "Editör bir hata bildirdi.",
+    revision: (no: number) => `Revizyon ${no}`,
+  },
   nav: {
     home: "Ana Sayfa",
     categories: "Kategoriler",
@@ -136,6 +153,8 @@ export const tr = {
     FILE_REQUIRED: "Bir dosya seçin.",
     FILE_TOO_LARGE: "Dosya izin verilen boyutu aşıyor.",
     TITLE_REQUIRED: "Doküman adı en az 3 karakter olmalı.",
+    DOCUMENT_NOT_FOUND: "Doküman bulunamadı ya da bu dokümana erişim yetkiniz yok.",
+    REVISION_NOT_FOUND: "Doküman sürümü bulunamadı ya da bu sürüme erişim yetkiniz yok.",
   },
 } as const;
 
