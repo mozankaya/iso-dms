@@ -14,6 +14,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { EditorModule } from './modules/editor/editor.module';
+import { RevisionsModule } from './modules/revisions/revisions.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -38,6 +39,7 @@ import { PrismaModule } from './prisma/prisma.module';
     DocumentsModule,
     TemplatesModule,
     EditorModule,
+    RevisionsModule,
   ],
   providers: [
     // Guard order matters: rate limit, then authentication, then role check.
