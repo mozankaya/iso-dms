@@ -20,6 +20,24 @@ function unsupported(): BadRequestException {
 }
 
 /**
+ * Content check: an Office file is a zip package with a content-types part and the main document part.
+ * Only the zip directory is read; nothing is decompressed.
+ */
+export async function assertOfficePackage(buffer: Buffer, fileType: FileType): Promise<void> {
+  try {
+    const zip = await JSZip.loadAsync(buffer);
+    if (!zip.file('[Content_Types].xml') || !zip.file(REQUIRED_PART[fileType])) {
+      throw new Error('missing part');
+    }
+  } catch {
+    throw new BadRequestException({
+      code: 'INVALID_FILE_CONTENT',
+      message: 'The file content does not match the file type',
+    });
+  }
+}
+
+/**
  * Validates an uploaded Office file (PROJECT.md 12): extension, MIME type and the actual content.
  * Returns the file type derived from the extension.
  */
@@ -45,19 +63,7 @@ export async function validateOfficeFile(
     throw new PayloadTooLargeException({ code: 'FILE_TOO_LARGE', message: 'The file is too large' });
   }
 
-  // Content check: an Office file is a zip package with a content-types part and the main document part.
-  // Only the zip directory is read; nothing is decompressed.
-  try {
-    const zip = await JSZip.loadAsync(file.buffer);
-    if (!zip.file('[Content_Types].xml') || !zip.file(REQUIRED_PART[fileType])) {
-      throw new Error('missing part');
-    }
-  } catch {
-    throw new BadRequestException({
-      code: 'INVALID_FILE_CONTENT',
-      message: 'The file content does not match the file type',
-    });
-  }
+  await assertOfficePackage(file.buffer, fileType);
 
   return fileType;
 }

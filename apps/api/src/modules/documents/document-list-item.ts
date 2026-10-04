@@ -15,9 +15,9 @@ export const DOCUMENT_LIST_SELECT = {
   currentRevision: { select: { revisionNo: true } },
 } satisfies Prisma.DocumentSelect;
 
-type DocumentListRow = Prisma.DocumentGetPayload<{ select: typeof DOCUMENT_LIST_SELECT }>;
+export type DocumentListRow = Prisma.DocumentGetPayload<{ select: typeof DOCUMENT_LIST_SELECT }>;
 
-export function toDocumentListItem(document: DocumentListRow): DocumentListItemDto {
+export function toDocumentListItem(document: DocumentListRow, canEdit: boolean): DocumentListItemDto {
   return {
     id: document.id,
     code: document.code,
@@ -29,5 +29,6 @@ export function toDocumentListItem(document: DocumentListRow): DocumentListItemD
     firstPublishedAt: document.firstPublishedAt?.toISOString() ?? null,
     revisedAt: document.revisedAt?.toISOString() ?? null,
     revisionNo: document.currentRevision?.revisionNo ?? null,
+    canEdit,
   };
 }

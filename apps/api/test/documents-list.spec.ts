@@ -342,12 +342,33 @@ describe('list item shape', () => {
       firstPublishedAt: '2025-01-10T09:00:00.000Z',
       revisedAt: '2025-06-01T09:00:00.000Z',
       revisionNo: 2,
+      canEdit: false, // published documents are not edited in place
     });
   });
 
   it('uses null for dates and revision number of unpublished documents', async () => {
     const { items } = await list(tokens.admin, { search: 'MM-AA-003' });
     expect(items[0]).toMatchObject({ firstPublishedAt: null, revisedAt: null, revisionNo: null });
+  });
+});
+
+describe('canEdit flag', () => {
+  const flags = async (token: string) =>
+    Object.fromEntries((await list(token, { status: 'DRAFT' })).items.map((item) => [item.code, item.canEdit]));
+
+  it('is true for drafts of the own department only (editor, approver)', async () => {
+    expect(await flags(tokens.editorA)).toEqual({ 'MM-AA-003': true });
+    expect(await flags(tokens.approver)).toEqual({ 'MM-AA-003': true, 'MM-BB-002': false });
+  });
+
+  it('is true for drafts of every department for quality managers and admins', async () => {
+    expect(await flags(tokens.admin)).toEqual({ 'MM-AA-003': true, 'MM-BB-002': true });
+  });
+
+  it('is never true for readers or for documents that are not drafts', async () => {
+    expect((await list(tokens.reader)).items.every((item) => !item.canEdit)).toBe(true);
+    const all = (await list(tokens.admin)).items;
+    expect(all.filter((item) => item.canEdit).map((item) => item.status)).toEqual(['DRAFT', 'DRAFT']);
   });
 });
 

@@ -1,8 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import type { DocumentListItemDto, DocumentSortField, PaginatedDto, SortOrder } from '@iso-dms/shared';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import type {
+  DocumentDetailDto,
+  DocumentListItemDto,
+  DocumentSortField,
+  PaginatedDto,
+  SortOrder,
+} from '@iso-dms/shared';
 import type { DocumentOrderByWithRelationInput, DocumentWhereInput } from '../../generated/prisma/models';
 import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PrismaService } from '../../prisma/prisma.service';
+import { canEditListedDocument, canEditRevision, canViewRevision, visibilityFilter } from './document-access.policy';
 import { DOCUMENT_LIST_SELECT, toDocumentListItem } from './document-list-item';
 import type { ListDocumentsDto } from './dto/list-documents.dto';
 
@@ -26,7 +33,12 @@ export class DocumentsService {
     ]);
 
     return {
-      items: documents.map(toDocumentListItem),
+      items: documents.map((document) =>
+        toDocumentListItem(
+          document,
+          canEditListedDocument(user, { status: document.status, departmentId: document.department.id }),
+        ),
+      ),
       total,
       page: query.page,
       pageSize: query.pageSize,
@@ -34,29 +46,44 @@ export class DocumentsService {
   }
 
   /**
-   * Visibility rules (PROJECT.md 6.4), enforced on the server:
-   * - READER: published documents only, the status filter is ignored.
-   * - EDITOR: published documents plus every non-published document of their own department.
-   * - APPROVER, QUALITY_MANAGER, ADMIN: all documents.
+   * One document the user may see, with the revision the editor opens for them: the open draft when they
+   * may view it, otherwise the revision in force. Documents outside the user's visibility are not found.
    */
+  async findOne(user: AuthenticatedUser, id: string): Promise<DocumentDetailDto> {
+    const visibility = visibilityFilter(user);
+    const document = await this.prisma.document.findFirst({
+      where: { id, organizationId: user.organizationId, ...(visibility && { AND: [visibility] }) },
+      select: {
+        ...DOCUMENT_LIST_SELECT,
+        departmentId: true,
+        currentRevisionId: true,
+        revisions: {
+          orderBy: { revisionNo: 'desc' },
+          select: { id: true, revisionNo: true, status: true },
+        },
+      },
+    });
+    if (!document) {
+      throw new NotFoundException({ code: 'DOCUMENT_NOT_FOUND', message: 'Document not found' });
+    }
+
+    const viewable = document.revisions.filter((revision) => canViewRevision(user, document, revision.id));
+    const openDraft = viewable.find((revision) => revision.status === 'DRAFT');
+    const inForce = viewable.find((revision) => revision.id === document.currentRevisionId);
+    const openRevision = openDraft ?? inForce ?? viewable[0] ?? null;
+
+    const canEdit = openRevision !== null && canEditRevision(user, document, openRevision);
+    return { ...toDocumentListItem(document, canEdit), openRevision };
+  }
+
+  /** Visibility rules live in document-access.policy.ts. */
   private buildWhere(user: AuthenticatedUser, query: ListDocumentsDto): DocumentWhereInput {
     const and: DocumentWhereInput[] = [{ organizationId: user.organizationId }];
 
-    if (user.role === 'READER') {
-      and.push({ status: 'PUBLISHED' });
-    } else {
-      if (user.role === 'EDITOR') {
-        and.push({
-          OR: [
-            { status: 'PUBLISHED' },
-            ...(user.departmentId
-              ? [{ departmentId: user.departmentId, status: { not: 'PUBLISHED' as const } }]
-              : []),
-          ],
-        });
-      }
-      if (query.status) and.push({ status: query.status });
-    }
+    const visibility = visibilityFilter(user);
+    if (visibility) and.push(visibility);
+    // Readers only ever see published documents: a status filter cannot widen that
+    if (query.status && user.role !== 'READER') and.push({ status: query.status });
 
     if (query.categoryId) and.push({ categoryId: query.categoryId });
     if (query.departmentId) and.push({ departmentId: query.departmentId });

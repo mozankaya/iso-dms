@@ -1,4 +1,16 @@
-import { Body, Controller, Get, HttpCode, Post, Query, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  Req,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 import type { Request } from 'express';
@@ -25,6 +37,11 @@ export class DocumentsController {
   @Get()
   list(@CurrentUser() user: AuthenticatedUser, @Query() query: ListDocumentsDto) {
     return this.documentsService.list(user, query);
+  }
+
+  @Get(':id')
+  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.documentsService.findOne(user, id);
   }
 
   @Post()

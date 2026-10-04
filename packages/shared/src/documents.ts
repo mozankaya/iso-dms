@@ -46,6 +46,8 @@ export interface DocumentListItemDto {
   revisedAt: string | null;
   /** Revision number of the currently valid revision, null if never published */
   revisionNo: number | null;
+  /** Whether the current user may edit this document's open draft */
+  canEdit: boolean;
 }
 
 export interface DocumentListQuery {
@@ -77,4 +79,26 @@ export interface CreateDocumentRequest {
   title: string;
   fileType: FileType;
   templateId?: string;
+}
+
+export interface RevisionSummaryDto {
+  id: string;
+  revisionNo: number;
+  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUPERSEDED';
+}
+
+/** A document plus the revision the editor opens for the current user. */
+export interface DocumentDetailDto extends DocumentListItemDto {
+  /** Null when the user may not open any revision of the document */
+  openRevision: RevisionSummaryDto | null;
+}
+
+export type EditorMode = 'edit' | 'view';
+
+export interface EditorSessionDto {
+  mode: EditorMode;
+  document: { id: string; code: string; title: string; status: DocumentStatus };
+  revision: RevisionSummaryDto;
+  /** Signed ONLYOFFICE editor configuration, passed to DocsAPI.DocEditor as is */
+  config: Record<string, unknown>;
 }

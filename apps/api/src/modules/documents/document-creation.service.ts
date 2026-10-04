@@ -15,6 +15,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { buildRevisionKey, FILE_TYPE_INFO } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
+import { canWriteInDepartment } from './document-access.policy';
 import { DocumentCodeService } from './document-code.service';
 import { DOCUMENT_LIST_SELECT, toDocumentListItem } from './document-list-item';
 import type { CreateDocumentDto, UploadDocumentDto } from './dto/create-document.dto';
@@ -35,9 +36,6 @@ interface NewDocumentInput {
   source: 'TEMPLATE' | 'UPLOAD';
   auditMetadata: Record<string, string | number>;
 }
-
-/** Roles that may only create documents in their own department (PROJECT.md 6.4). */
-const DEPARTMENT_BOUND_ROLES = ['EDITOR', 'APPROVER'];
 
 @Injectable()
 export class DocumentCreationService {
@@ -127,7 +125,7 @@ export class DocumentCreationService {
   }
 
   private assertCanCreateIn(user: AuthenticatedUser, departmentId: string): void {
-    if (DEPARTMENT_BOUND_ROLES.includes(user.role) && user.departmentId !== departmentId) {
+    if (!canWriteInDepartment(user, departmentId)) {
       throw new ForbiddenException({
         code: 'DEPARTMENT_NOT_ALLOWED',
         message: 'Documents can only be created in your own department',
@@ -255,7 +253,7 @@ export class DocumentCreationService {
           tx,
         );
 
-        return toDocumentListItem(document);
+        return toDocumentListItem(document, true);
       });
     } catch (error) {
       await this.storage.delete(storageKey).catch((cleanupError: Error) => {
