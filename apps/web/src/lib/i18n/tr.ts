@@ -147,6 +147,18 @@ export const tr = {
     notFound: "Doküman bulunamadı ya da bu dokümana erişim yetkiniz yok.",
     loadError: "Doküman yüklenemedi.",
   },
+  publish: {
+    button: "Yayınla",
+    dialogTitle: "Dokümanı yayınla",
+    confirm: (code: string, revisionNo: number) =>
+      `${code} kodlu dokümanın ${revisionNo}. revizyonu yayınlanacak. Yayınlandıktan sonra bu revizyon düzenlenemez.`,
+    changeSummary: "Değişiklik açıklaması",
+    changeSummaryHint: "Bu revizyonda neyin değiştiğini yazın.",
+    changeSummaryRequired: "Değişiklik açıklaması zorunlu",
+    submit: "Yayınla",
+    submitting: "Yayınlanıyor...",
+    cancel: "Vazgeç",
+  },
   revisions: {
     title: "Revizyon Geçmişi",
     empty: "Görüntüleyebileceğiniz bir revizyon yok.",
@@ -208,6 +220,12 @@ export const tr = {
     FILE_REQUIRED: "Bir dosya seçin.",
     FILE_TOO_LARGE: "Dosya izin verilen boyutu aşıyor.",
     TITLE_REQUIRED: "Doküman adı en az 3 karakter olmalı.",
+    EDITOR_SESSION_ACTIVE:
+      "Doküman şu anda düzenleniyor ya da son değişiklikler kaydediliyor. Editörü kapatıp birkaç saniye sonra tekrar deneyin.",
+    EDITOR_SERVER_UNAVAILABLE:
+      "Editör sunucusuna ulaşılamadığı için açık düzenleme oturumları denetlenemedi. Lütfen daha sonra tekrar deneyin.",
+    REVISION_NOT_PUBLISHABLE: "Bu revizyon yayınlanamaz. Taslak değil ya da doküman yayından kaldırılmış olabilir.",
+    CHANGE_SUMMARY_REQUIRED: "Değişiklik açıklaması zorunlu.",
     NO_PUBLISHED_REVISION: "Bu dokümanın yürürlükte bir sürümü yok.",
     REVISION_FILE_MISSING: "Dosya depoda bulunamadı. Lütfen yöneticinize bildirin.",
     DOCUMENT_NOT_FOUND: "Doküman bulunamadı ya da bu dokümana erişim yetkiniz yok.",

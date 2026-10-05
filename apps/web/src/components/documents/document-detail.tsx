@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DownloadButton } from "@/components/documents/download-button";
+import { PublishButton } from "@/components/documents/publish-button";
 import { RevisionHistory } from "@/components/documents/revision-history";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -127,6 +128,9 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {doc.canPublish && doc.openRevision && (
+              <PublishButton documentId={doc.id} code={doc.code} revision={doc.openRevision} />
+            )}
             {doc.openRevision && (
               <Link href={`/documents/${doc.id}/edit`} className={buttonVariants()}>
                 {doc.canEdit ? t.edit : t.view}

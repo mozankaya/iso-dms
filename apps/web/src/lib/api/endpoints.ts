@@ -88,3 +88,10 @@ export const downloadPath = {
   revision: (revisionId: string) => `/revisions/${encodeURIComponent(revisionId)}/download`,
   current: (documentId: string) => `/documents/${encodeURIComponent(documentId)}/download`,
 };
+
+export function publishRevision(revisionId: string, changeSummary?: string): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/revisions/${encodeURIComponent(revisionId)}/publish`, {
+    method: "POST",
+    body: JSON.stringify(changeSummary ? { changeSummary } : {}),
+  });
+}

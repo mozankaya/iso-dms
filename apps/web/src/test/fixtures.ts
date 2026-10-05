@@ -30,6 +30,7 @@ export function documentDetail(overrides: Partial<DocumentDetailDto> = {}): Docu
     withdrawnAt: null,
     withdrawalReason: null,
     createdAt: "2024-12-01T09:00:00.000Z",
+    canPublish: false,
     ...overrides,
   };
 }
@@ -48,6 +49,7 @@ export function revisionRow(overrides: Partial<RevisionHistoryItemDto> = {}): Re
     changeSummary: "Madde 3 güncellendi",
     fileSize: 24576,
     canEdit: false,
+    canPublish: false,
     ...overrides,
   };
 }

@@ -121,6 +121,29 @@ describe("DocumentDetail", () => {
       expect(documentDownload()).toBeDefined();
     });
 
+    it("offers publishing the open draft to those who may", async () => {
+      getDocument.mockResolvedValue(
+        documentDetail({
+          status: "DRAFT",
+          canEdit: true,
+          canPublish: true,
+          currentRevisionId: null,
+          openRevision: { id: "rev-9", revisionNo: 0, status: "DRAFT" },
+        }),
+      );
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(screen.getByRole("button", { name: tr.publish.button })).toBeInTheDocument();
+    });
+
+    it("hides the publish button from everybody else", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(screen.queryByRole("button", { name: tr.publish.button })).not.toBeInTheDocument();
+    });
+
     it("offers viewing otherwise", async () => {
       renderDetail();
       await screen.findByRole("heading", { level: 1 });
