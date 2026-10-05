@@ -478,8 +478,78 @@ describe('POST /api/editor/callback/:revisionId', () => {
     fakeRequests = [];
   });
 
+  describe('the edit session mark', () => {
+    it('is set when an editing session is handed out, and only then', async () => {
+      const draft = await createDocument({ code: 'MM-BB-091', departmentId: org.deptB, status: 'DRAFT', revisions: [{ revisionNo: 0, status: 'DRAFT' }] });
+      const revisionId = draft.revisions[0].id;
+      expect((await revisionRow(revisionId)).editSessionStartedAt).toBeNull();
+
+      await openSession(users.approverA.token, revisionId); // view only: another department
+      expect((await revisionRow(revisionId)).editSessionStartedAt).toBeNull();
+
+      await openSession(users.qm.token, revisionId);
+      expect((await revisionRow(revisionId)).editSessionStartedAt).toBeInstanceOf(Date);
+    });
+
+    it('is not set on a revision that was locked: that session is read only', async () => {
+      const draft = await createDocument({ code: 'MM-BB-092', departmentId: org.deptB, status: 'IN_REVIEW', revisions: [{ revisionNo: 0, status: 'IN_REVIEW' }] });
+
+      const session = await openSession(users.admin.token, draft.revisions[0].id);
+
+      expect(session.mode).toBe('view');
+      expect((await revisionRow(draft.revisions[0].id)).editSessionStartedAt).toBeNull();
+    });
+
+    it('ends when the editor is closed without changes (status 4)', async () => {
+      const draft = await freshDraft();
+      const before = await revisionRow(draft.revisionId);
+      expect(before.editSessionStartedAt).toBeInstanceOf(Date);
+
+      const response = await postCallback(draft.path, { key: draft.key, status: 4 }).expect(200);
+
+      expect(response.body).toEqual({ error: 0 });
+      expect(await revisionRow(draft.revisionId)).toEqual({ ...before, editSessionStartedAt: null });
+      expect(await auditActions(draft.revisionId)).toEqual([]);
+    });
+
+    it('is not ended by a message of another session (other key)', async () => {
+      const draft = await freshDraft();
+
+      await postCallback(draft.path, { key: randomUUID(), status: 4 }).expect(200);
+
+      expect((await revisionRow(draft.revisionId)).editSessionStartedAt).toBeInstanceOf(Date);
+    });
+
+    it('ends together with the final save (status 2), in the same step that stores the content', async () => {
+      const draft = await freshDraft();
+
+      await postCallback(draft.path, { key: draft.key, status: 2, url: `${fakeOrigin}/cache/files/edited.docx` }).expect(200);
+
+      const after = await revisionRow(draft.revisionId);
+      expect(after.editSessionStartedAt).toBeNull();
+      expect(after.checksum).toBe(createHash('sha256').update(editedDocx).digest('hex'));
+    });
+
+    it('stays while the session goes on: forced saves and joining users do not end it', async () => {
+      const draft = await freshDraft();
+
+      await postCallback(draft.path, { key: draft.key, status: 6, url: `${fakeOrigin}/cache/files/edited.docx`, users: [users.admin.id] }).expect(200);
+      await postCallback(draft.path, { key: draft.key, status: 1, users: [users.admin.id] }).expect(200);
+
+      expect((await revisionRow(draft.revisionId)).editSessionStartedAt).toBeInstanceOf(Date);
+    });
+
+    it('stays when the final save fails, so a publication keeps waiting for the content', async () => {
+      const draft = await freshDraft();
+
+      await postCallback(draft.path, { key: draft.key, status: 2, url: `${fakeOrigin}/cache/files/missing.docx` }).expect(200);
+
+      expect((await revisionRow(draft.revisionId)).editSessionStartedAt).toBeInstanceOf(Date);
+    });
+  });
+
   describe('statuses that store nothing', () => {
-    it.each([1, 4, 3, 7, 0, 99])('answers "handled" and changes nothing for status %i', async (status) => {
+    it.each([1, 3, 7, 0, 99])('answers "handled" and changes nothing for status %i', async (status) => {
       const draft = await freshDraft();
       const before = await revisionRow(draft.revisionId);
 

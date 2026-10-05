@@ -45,7 +45,17 @@ export class EditorConfigService {
     });
 
     const { document } = revision;
-    const mode: EditorMode = canEditRevision(user, document, revision) ? 'edit' : 'view';
+    let mode: EditorMode = canEditRevision(user, document, revision) ? 'edit' : 'view';
+    if (mode === 'edit') {
+      // The mark and the status check are one statement: either this session is recorded before a publication
+      // can lock the revision (and the publication then waits for it), or the revision is no longer a draft
+      // and the user gets a read only session.
+      const marked = await this.prisma.revision.updateMany({
+        where: { id: revision.id, status: 'DRAFT' },
+        data: { editSessionStartedAt: new Date() },
+      });
+      if (marked.count === 0) mode = 'view';
+    }
     const extension = FILE_TYPE_INFO[document.fileType].extension;
     const tokenClaims = { revisionId: revision.id, organizationId: user.organizationId };
 

@@ -202,22 +202,25 @@ model Document {
 }
 
 model Revision {
-  id             String         @id @default(uuid())
-  organizationId String
-  documentId     String
-  revisionNo     Int // 0 = first publication
-  status         RevisionStatus @default(DRAFT)
-  storageKey     String
-  pdfStorageKey  String?
-  fileSize       Int
-  checksum       String // SHA-256
-  editorKey      String // ONLYOFFICE document.key
-  changeSummary  String?
-  preparedById   String
-  approvedById   String?
-  approvedAt     DateTime?
-  publishedAt    DateTime?
-  createdAt      DateTime       @default(now())
+  id                   String         @id @default(uuid())
+  organizationId       String
+  documentId           String
+  revisionNo           Int // 0 = first publication
+  status               RevisionStatus @default(DRAFT)
+  storageKey           String
+  pdfStorageKey        String?
+  fileSize             Int
+  checksum             String // SHA-256
+  editorKey            String // ONLYOFFICE document.key
+  // Set when an editing session is handed out, cleared when the editor reports that the session is over
+  // and its content is stored (callback status 2 or 4). Publishing waits for it to be empty.
+  editSessionStartedAt DateTime?
+  changeSummary        String?
+  preparedById         String
+  approvedById         String?
+  approvedAt           DateTime?
+  publishedAt          DateTime?
+  createdAt            DateTime       @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   document     Document     @relation("DocumentRevisions", fields: [documentId], references: [id], onDelete: Restrict)

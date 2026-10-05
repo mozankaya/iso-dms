@@ -19,6 +19,7 @@ export interface CallbackResponse {
 const STATUS = {
   READY_FOR_SAVING: 2,
   SAVING_ERROR: 3,
+  CLOSED_WITHOUT_CHANGES: 4,
   FORCE_SAVE: 6,
   FORCE_SAVE_ERROR: 7,
 } as const;
@@ -57,13 +58,21 @@ export class EditorCallbackService {
     const claims = await this.fileTokens.verify(params.urlToken, 'callback', params.revisionId);
     const payload = await this.onlyOfficeJwt.verifyCallback(params.authorization, params.body);
     const status = Number(payload.status);
+    this.logger.debug(
+      `Callback status ${status} for revision ${params.revisionId}` +
+        (Array.isArray(payload.users) ? ` (users: ${payload.users.length})` : ''),
+    );
 
     if (status === STATUS.SAVING_ERROR || status === STATUS.FORCE_SAVE_ERROR) {
       this.logger.error(`The document server could not save revision ${params.revisionId} (status ${status})`);
       return { error: 0 };
     }
+    if (status === STATUS.CLOSED_WITHOUT_CHANGES) {
+      await this.endSession(claims.organizationId, params.revisionId, payload.key);
+      return { error: 0 };
+    }
     if (status !== STATUS.READY_FOR_SAVING && status !== STATUS.FORCE_SAVE) {
-      return { error: 0 }; // editing (1) or closed without changes (4): nothing to store
+      return { error: 0 }; // somebody joined or left (1): nothing to store
     }
 
     try {
@@ -159,9 +168,10 @@ export class EditorCallbackService {
             storageKey: newKey,
             fileSize: content.length,
             checksum,
-            // The key changes only when the session ends (status 2). During a forced save others may still
-            // be editing, and a new key would make the document server open a second, separate session.
-            ...(input.status === STATUS.READY_FOR_SAVING && { editorKey: randomUUID() }),
+            // The session ends with status 2: the key changes and the revision is no longer marked as being
+            // edited. During a forced save others may still be editing, and a new key would make the document
+            // server open a second, separate session.
+            ...(input.status === STATUS.READY_FOR_SAVING && { editorKey: randomUUID(), editSessionStartedAt: null }),
           },
         });
         await this.auditLogs.log(
@@ -197,6 +207,19 @@ export class EditorCallbackService {
       await this.removeQuietly(newKey);
       throw error;
     }
+  }
+
+  /**
+   * The editor was closed without changes: nothing is left to store and the revision is free again.
+   * Only the session this callback belongs to may end it, so a late message of an older session cannot
+   * release a revision somebody else has just opened.
+   */
+  private async endSession(organizationId: string, revisionId: string, key: unknown): Promise<void> {
+    if (typeof key !== 'string') return;
+    await this.prisma.revision.updateMany({
+      where: { id: revisionId, organizationId, editorKey: key },
+      data: { editSessionStartedAt: null },
+    });
   }
 
   /** The document server reports its own address; the API may only fetch from the configured origins. */
