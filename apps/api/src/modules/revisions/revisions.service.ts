@@ -4,7 +4,12 @@ import type { Readable } from 'node:stream';
 import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
-import { canEditRevision, canViewRevision, visibleDocumentWhere } from '../documents/document-access.policy';
+import {
+  canEditRevision,
+  canPublishRevision,
+  canViewRevision,
+  visibleDocumentWhere,
+} from '../documents/document-access.policy';
 import { FILE_TYPE_INFO } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 import { buildDownloadFileName } from './download-file-name';
@@ -74,6 +79,7 @@ export class RevisionsService {
         changeSummary: revision.changeSummary,
         fileSize: revision.fileSize,
         canEdit: canEditRevision(user, document, revision),
+        canPublish: canPublishRevision(user, document, revision),
       }));
   }
 

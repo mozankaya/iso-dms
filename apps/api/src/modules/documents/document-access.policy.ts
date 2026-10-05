@@ -88,3 +88,18 @@ export function canEditListedDocument(
 ): boolean {
   return document.status === 'DRAFT' && canWriteInDepartment(user, document.departmentId);
 }
+
+/** Roles that give the final go for publication (PROJECT.md 6.4: "Son onay ve yayınlama"). */
+const PUBLISHER_ROLES = ['QUALITY_MANAGER', 'ADMIN'];
+
+/**
+ * Whether the user may publish a revision. Only an open draft can be published, and nothing of a
+ * withdrawn document. (Until the approval flow exists the publisher may also be the preparer.)
+ */
+export function canPublishRevision(
+  user: AuthenticatedUser,
+  document: Pick<DocumentForAccess, 'status'>,
+  revision: { status: RevisionStatus },
+): boolean {
+  return PUBLISHER_ROLES.includes(user.role) && revision.status === 'DRAFT' && document.status !== 'WITHDRAWN';
+}

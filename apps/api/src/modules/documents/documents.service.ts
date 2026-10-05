@@ -12,6 +12,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import {
   canEditListedDocument,
   canEditRevision,
+  canPublishRevision,
   canViewRevision,
   visibilityFilter,
   visibleDocumentWhere,
@@ -98,6 +99,7 @@ export class DocumentsService {
       withdrawnAt: document.withdrawnAt?.toISOString() ?? null,
       withdrawalReason: document.withdrawalReason,
       createdAt: document.createdAt.toISOString(),
+      canPublish: openRevision !== null && canPublishRevision(user, document, openRevision),
     };
   }
 

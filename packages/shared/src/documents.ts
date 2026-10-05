@@ -109,6 +109,8 @@ export interface RevisionHistoryItemDto extends RevisionSummaryDto {
   fileSize: number;
   /** Whether the current user may edit this revision */
   canEdit: boolean;
+  /** Whether the current user may publish this revision */
+  canPublish: boolean;
 }
 
 /** A document with everything the detail page shows, plus the revision the editor opens for the current user. */
@@ -125,6 +127,8 @@ export interface DocumentDetailDto extends DocumentListItemDto {
   withdrawnAt: string | null;
   withdrawalReason: string | null;
   createdAt: string;
+  /** Whether the current user may publish the open revision (see openRevision) */
+  canPublish: boolean;
 }
 
 export type EditorMode = 'edit' | 'view';
@@ -135,4 +139,9 @@ export interface EditorSessionDto {
   revision: RevisionSummaryDto;
   /** Signed ONLYOFFICE editor configuration, passed to DocsAPI.DocEditor as is */
   config: Record<string, unknown>;
+}
+
+export interface PublishRevisionRequest {
+  /** Required from the second revision on: what changed */
+  changeSummary?: string;
 }

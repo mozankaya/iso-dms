@@ -285,6 +285,7 @@ describe('GET /api/documents/:id/revisions', () => {
       changeSummary: 'Madde 3 güncellendi',
       fileSize: blankDocx.length,
       canEdit: false,
+      canPublish: false, // already in force
     });
     expect(rows[2]).toMatchObject({ revisionNo: 0, status: 'SUPERSEDED', isCurrent: false, approvedBy: { fullName: 'Kader Kalite' } });
     expect(rows[0]).toMatchObject({
