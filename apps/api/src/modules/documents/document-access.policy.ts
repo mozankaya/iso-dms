@@ -89,6 +89,23 @@ export function canEditListedDocument(
   return document.status === 'DRAFT' && canWriteInDepartment(user, document.departmentId);
 }
 
+/**
+ * Whether the user may start a new revision of a document (PROJECT.md 6.2 rule 6): the document is in force,
+ * nothing is open yet (rule 9: one open draft at a time) and the user may write in its department.
+ */
+export function canStartRevision(
+  user: AuthenticatedUser,
+  document: Pick<DocumentForAccess, 'status' | 'departmentId' | 'currentRevisionId'>,
+  hasOpenRevision: boolean,
+): boolean {
+  return (
+    document.status === 'PUBLISHED' &&
+    document.currentRevisionId !== null &&
+    !hasOpenRevision &&
+    canWriteInDepartment(user, document.departmentId)
+  );
+}
+
 /** Roles that give the final go for publication (PROJECT.md 6.4: "Son onay ve yayınlama"). */
 const PUBLISHER_ROLES = ['QUALITY_MANAGER', 'ADMIN'];
 

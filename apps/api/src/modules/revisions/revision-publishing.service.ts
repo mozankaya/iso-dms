@@ -46,8 +46,9 @@ export class RevisionPublishingService {
     }
     if (!canPublishRevision(user, revision.document, revision)) throw notPublishable();
 
+    // The summary can be given here or was given when the revision was started
     const changeSummary = dto.changeSummary?.trim() || null;
-    if (revision.revisionNo > 0 && !changeSummary) {
+    if (revision.revisionNo > 0 && !changeSummary && !revision.changeSummary) {
       throw new BadRequestException({
         code: 'CHANGE_SUMMARY_REQUIRED',
         message: 'A change summary is required from the second revision on',

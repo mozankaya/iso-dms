@@ -90,6 +90,11 @@ export interface RevisionSummaryDto {
   status: RevisionStatus;
 }
 
+/** The revision a document page works with: summary plus what the author said changed. */
+export interface OpenRevisionDto extends RevisionSummaryDto {
+  changeSummary: string | null;
+}
+
 export interface PersonDto {
   id: string;
   fullName: string;
@@ -116,7 +121,7 @@ export interface RevisionHistoryItemDto extends RevisionSummaryDto {
 /** A document with everything the detail page shows, plus the revision the editor opens for the current user. */
 export interface DocumentDetailDto extends DocumentListItemDto {
   /** Null when the user may not open any revision of the document */
-  openRevision: RevisionSummaryDto | null;
+  openRevision: OpenRevisionDto | null;
   category: { id: string; name: string; slug: string };
   owner: PersonDto;
   /** The revision in force, null for documents that were never published */
@@ -129,6 +134,13 @@ export interface DocumentDetailDto extends DocumentListItemDto {
   createdAt: string;
   /** Whether the current user may publish the open revision (see openRevision) */
   canPublish: boolean;
+  /** Whether the current user may start a new revision of this (published) document */
+  canStartRevision: boolean;
+}
+
+export interface StartRevisionRequest {
+  /** What the new revision is going to change; required */
+  changeSummary: string;
 }
 
 export type EditorMode = 'edit' | 'view';

@@ -15,8 +15,10 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PublishRevisionDto } from './dto/publish-revision.dto';
+import { StartRevisionDto } from './dto/start-revision.dto';
 import { contentDisposition } from './download-file-name';
 import { RevisionPublishingService } from './revision-publishing.service';
+import { RevisionStartingService } from './revision-starting.service';
 import { RevisionDownload, RevisionsService } from './revisions.service';
 
 function toResponse(download: RevisionDownload, res: Response): StreamableFile {
@@ -34,11 +36,24 @@ export class RevisionsController {
   constructor(
     private readonly revisionsService: RevisionsService,
     private readonly publishingService: RevisionPublishingService,
+    private readonly startingService: RevisionStartingService,
   ) {}
 
   @Get('documents/:documentId/revisions')
   list(@CurrentUser() user: AuthenticatedUser, @Param('documentId', ParseUUIDPipe) documentId: string) {
     return this.revisionsService.listForDocument(user, documentId);
+  }
+
+  /** PROJECT.md 6.4: "Revizyon / yayından kaldırma talebi" is for everybody who may write. */
+  @Post('documents/:documentId/revisions')
+  @Roles('EDITOR', 'APPROVER', 'QUALITY_MANAGER', 'ADMIN')
+  start(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Body() dto: StartRevisionDto,
+    @Req() req: Request,
+  ) {
+    return this.startingService.start(user, documentId, dto, req.ip ?? null);
   }
 
   @Get('documents/:documentId/download')

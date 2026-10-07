@@ -13,6 +13,7 @@ import {
   canEditListedDocument,
   canEditRevision,
   canPublishRevision,
+  canStartRevision,
   canViewRevision,
   visibilityFilter,
   visibleDocumentWhere,
@@ -73,7 +74,7 @@ export class DocumentsService {
         owner: { select: { id: true, fullName: true } },
         revisions: {
           orderBy: { revisionNo: 'desc' },
-          select: { id: true, revisionNo: true, status: true },
+          select: { id: true, revisionNo: true, status: true, changeSummary: true },
         },
       },
     });
@@ -100,6 +101,11 @@ export class DocumentsService {
       withdrawalReason: document.withdrawalReason,
       createdAt: document.createdAt.toISOString(),
       canPublish: openRevision !== null && canPublishRevision(user, document, openRevision),
+      canStartRevision: canStartRevision(
+        user,
+        document,
+        document.revisions.some((revision) => revision.status === 'DRAFT' || revision.status === 'IN_REVIEW'),
+      ),
     };
   }
 
