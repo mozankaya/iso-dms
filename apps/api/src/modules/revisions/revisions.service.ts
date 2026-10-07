@@ -6,7 +6,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
   canEditRevision,
-  canPublishRevision,
   canViewRevision,
   visibleDocumentWhere,
 } from '../documents/document-access.policy';
@@ -79,7 +78,6 @@ export class RevisionsService {
         changeSummary: revision.changeSummary,
         fileSize: revision.fileSize,
         canEdit: canEditRevision(user, document, revision),
-        canPublish: canPublishRevision(user, document, revision),
       }));
   }
 

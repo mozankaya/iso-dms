@@ -106,17 +106,58 @@ export function canStartRevision(
   );
 }
 
-/** Roles that give the final go for publication (PROJECT.md 6.4: "Son onay ve yayınlama"). */
-const PUBLISHER_ROLES = ['QUALITY_MANAGER', 'ADMIN'];
-
 /**
- * Whether the user may publish a revision. Only an open draft can be published, and nothing of a
- * withdrawn document. (Until the approval flow exists the publisher may also be the preparer.)
+ * Whether the user may send a revision to review (PROJECT.md 6.2 rule 3): the same people who may edit the
+ * open draft. Whether somebody still has it open in the editor is the business of EditSessionGate.
  */
-export function canPublishRevision(
+export function canSubmitRevision(
   user: AuthenticatedUser,
-  document: Pick<DocumentForAccess, 'status'>,
+  document: Pick<DocumentForAccess, 'status' | 'departmentId'>,
   revision: { status: RevisionStatus },
 ): boolean {
-  return PUBLISHER_ROLES.includes(user.role) && revision.status === 'DRAFT' && document.status !== 'WITHDRAWN';
+  return canEditRevision(user, document, revision);
+}
+
+/**
+ * Whether the user may give up the open draft of a document in force (a revision that was started and is no
+ * longer wanted). A document that was never published has no such way out: its draft is the document.
+ */
+export function canCancelRevision(
+  user: AuthenticatedUser,
+  document: Pick<DocumentForAccess, 'status' | 'departmentId' | 'currentRevisionId'>,
+  revision: { id: string; status: RevisionStatus },
+): boolean {
+  return (
+    document.status === 'PUBLISHED' &&
+    document.currentRevisionId !== null &&
+    revision.id !== document.currentRevisionId &&
+    revision.status === 'DRAFT' &&
+    canWriteInDepartment(user, document.departmentId)
+  );
+}
+
+export type ApprovalDenial = 'NOT_ALLOWED' | 'OWN_REVISION';
+
+/**
+ * Why the user may not decide an approval step, or null when they may (PROJECT.md 6.3): step 1 belongs to the
+ * approvers of the document's department, step 2 to the quality managers, the administrator may give either, and
+ * whoever prepared the revision decides nothing about it. Whether it is this step's turn is not decided here.
+ */
+export function approvalDenial(
+  user: AuthenticatedUser,
+  step: { approverRole: string },
+  document: { departmentId: string },
+  revision: { preparedById: string },
+): ApprovalDenial | null {
+  const roleFits =
+    user.role === 'ADMIN' ||
+    (step.approverRole === 'APPROVER' && user.role === 'APPROVER' && user.departmentId === document.departmentId) ||
+    (step.approverRole === 'QUALITY_MANAGER' && user.role === 'QUALITY_MANAGER');
+  if (!roleFits) return 'NOT_ALLOWED';
+  return revision.preparedById === user.id ? 'OWN_REVISION' : null;
+}
+
+/** Whoever sent a revision to review may take it back, and so may the administrator. */
+export function canCancelRequest(user: AuthenticatedUser, request: { requestedById: string }): boolean {
+  return user.id === request.requestedById || user.role === 'ADMIN';
 }

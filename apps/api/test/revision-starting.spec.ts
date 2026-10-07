@@ -12,7 +12,9 @@ import { buildRevisionKey } from '../src/modules/storage/storage-keys';
 import { StorageService } from '../src/modules/storage/storage.service';
 import { createPrismaClient } from '../src/prisma/create-prisma-client';
 import { deleteAuditLogs } from './helpers/audit-cleanup';
+import { publishThroughApproval } from './helpers/approval-flow';
 import { createTestApp } from './helpers/create-test-app';
+import { startFakeCommandServer, type FakeCommandServer } from './helpers/fake-command-server';
 import { signToken } from './helpers/tokens';
 
 const prisma = createPrismaClient();
@@ -20,6 +22,7 @@ const suffix = randomUUID().slice(0, 8);
 const organizationIds: string[] = [];
 
 let app: INestApplication;
+let commandServer: FakeCommandServer;
 let storage: StorageService;
 let blankDocx: Buffer;
 let foreignDocumentId: string;
@@ -96,6 +99,9 @@ const detail = async (token: string, documentId: string) =>
 
 beforeAll(async () => {
   blankDocx = await readFile(path.resolve(__dirname, '../templates/blank.docx'));
+  // Sending a draft to review asks the document server whether somebody still edits it
+  commandServer = await startFakeCommandServer(process.env.ONLYOFFICE_JWT_SECRET!);
+  process.env.ONLYOFFICE_INTERNAL_URL = commandServer.origin;
   app = await createTestApp();
   storage = app.get(StorageService);
 
@@ -138,6 +144,8 @@ afterAll(async () => {
   const revisions = await prisma.revision.findMany({ where: { organizationId: { in: organizationIds } } });
   await Promise.all(revisions.map((revision) => storage.delete(revision.storageKey).catch(() => undefined)));
   await deleteAuditLogs(prisma, { organizationId: { in: organizationIds } });
+  await prisma.approvalStep.deleteMany({ where: { organizationId: { in: organizationIds } } });
+  await prisma.documentRequest.deleteMany({ where: { organizationId: { in: organizationIds } } });
   await prisma.document.updateMany({ where: { organizationId: { in: organizationIds } }, data: { currentRevisionId: null } });
   await prisma.revision.deleteMany({ where: { organizationId: { in: organizationIds } } });
   await prisma.document.deleteMany({ where: { organizationId: { in: organizationIds } } });
@@ -147,6 +155,7 @@ afterAll(async () => {
   await prisma.organization.deleteMany({ where: { id: { in: organizationIds } } });
   await prisma.$disconnect();
   await app.close();
+  await commandServer.close();
 });
 
 describe('who may start a revision', () => {
@@ -345,11 +354,11 @@ describe('when a revision cannot be started', () => {
     expect(await revisionRows(doc.id)).toHaveLength(2);
   });
 
-  it('allows a new one once the draft is published', async () => {
+  it('allows a new one once the draft has been through the approval', async () => {
     const doc = await published();
     await start(users.qm.token, doc.id).expect(201);
     const [, draft] = await revisionRows(doc.id);
-    await request(app.getHttpServer()).post(`/api/revisions/${draft.id}/publish`).set(auth(users.qm.token)).send({}).expect(200);
+    await publishThroughApproval(app, { revisionId: draft.id, submitToken: users.qm.token, approverToken: users.approverA.token, qualityToken: users.admin.token });
 
     const response = await start(users.qm.token, doc.id).expect(201);
 
@@ -420,7 +429,7 @@ describe('what everybody else sees meanwhile', () => {
     expect(list).toMatchObject([{ code: doc.code, status: 'PUBLISHED', revisionNo: 0 }]);
   });
 
-  it('lets the department edit the new draft and the publisher publish it', async () => {
+  it('lets the department edit the new draft, and the approvers see what it is about', async () => {
     const doc = await published();
     await start(users.editorA.token, doc.id, { changeSummary: 'Yeni madde' }).expect(201);
     const [, draft] = await revisionRows(doc.id);
@@ -431,33 +440,21 @@ describe('what everybody else sees meanwhile', () => {
     await request(app.getHttpServer()).get(`/api/editor/config/${draft.id}`).set(auth(users.editorB.token)).expect(404);
 
     const asQualityManager = await detail(users.qm.token, doc.id);
-    expect(asQualityManager).toMatchObject({ canPublish: true, openRevision: { changeSummary: 'Yeni madde' } });
+    expect(asQualityManager).toMatchObject({ canSubmit: true, openRevision: { changeSummary: 'Yeni madde' } });
   });
 
-  it('publishes without asking for the summary again, because it was given when the revision started', async () => {
+  it('keeps the summary given when the revision started through the whole approval', async () => {
     const doc = await published();
     await start(users.editorA.token, doc.id, { changeSummary: 'Yeni madde' }).expect(201);
     const [inForce, draft] = await revisionRows(doc.id);
-    // The editor session of the draft ended without a save
-    await prisma.revision.update({ where: { id: draft.id }, data: { editSessionStartedAt: null } });
 
-    const response = await request(app.getHttpServer()).post(`/api/revisions/${draft.id}/publish`).set(auth(users.qm.token)).send({}).expect(200);
+    const response = await publishThroughApproval(app, { revisionId: draft.id, submitToken: users.editorA.token, approverToken: users.approverA.token, qualityToken: users.qm.token });
 
-    expect(response.body).toMatchObject({ currentRevisionId: draft.id, revisionNo: 1 });
+    expect(response).toMatchObject({ currentRevisionId: draft.id, revisionNo: 1 });
     expect((await prisma.revision.findUniqueOrThrow({ where: { id: inForce.id } })).status).toBe('SUPERSEDED');
     expect((await prisma.revision.findUniqueOrThrow({ where: { id: draft.id } })).changeSummary).toBe('Yeni madde');
     expect((await documentRow(doc.id)).revisedAt).toBeInstanceOf(Date);
-    expect(await auditActions([doc.id, draft.id])).toEqual(expect.arrayContaining(['REVISION_STARTED', 'DOCUMENT_PUBLISHED']));
-  });
-
-  it('lets the publisher replace the summary when publishing', async () => {
-    const doc = await published();
-    await start(users.editorA.token, doc.id, { changeSummary: 'Yeni madde' }).expect(201);
-    const [, draft] = await revisionRows(doc.id);
-
-    await request(app.getHttpServer()).post(`/api/revisions/${draft.id}/publish`).set(auth(users.qm.token)).send({ changeSummary: 'Düzeltilmiş açıklama' }).expect(200);
-
-    expect((await prisma.revision.findUniqueOrThrow({ where: { id: draft.id } })).changeSummary).toBe('Düzeltilmiş açıklama');
+    expect(await auditActions([doc.id, draft.id])).toEqual(expect.arrayContaining(['REVISION_STARTED', 'REVISION_SUBMITTED', 'APPROVAL_APPROVED', 'DOCUMENT_PUBLISHED']));
   });
 });
 

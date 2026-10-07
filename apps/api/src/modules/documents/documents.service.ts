@@ -11,13 +11,15 @@ import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   canEditListedDocument,
+  canCancelRevision,
   canEditRevision,
-  canPublishRevision,
   canStartRevision,
+  canSubmitRevision,
   canViewRevision,
   visibilityFilter,
   visibleDocumentWhere,
 } from './document-access.policy';
+import { APPROVAL_REQUEST_INCLUDE, toApprovalRequestDto } from '../approvals/approval-request.mapper';
 import { DOCUMENT_LIST_SELECT, toDocumentListItem } from './document-list-item';
 import type { ListDocumentsDto } from './dto/list-documents.dto';
 
@@ -88,6 +90,16 @@ export class DocumentsService {
     const openRevision = openDraft ?? inForce ?? viewable[0] ?? null;
 
     const canEdit = openRevision !== null && canEditRevision(user, document, openRevision);
+
+    // The approval of the revision that is being reviewed, or else of the open draft (the last one, if it was rejected)
+    const underApproval = viewable.find((revision) => revision.status === 'IN_REVIEW') ?? openDraft;
+    const approval = underApproval
+      ? await this.prisma.documentRequest.findFirst({
+          where: { organizationId: user.organizationId, revisionId: underApproval.id },
+          orderBy: { createdAt: 'desc' },
+          include: APPROVAL_REQUEST_INCLUDE,
+        })
+      : null;
     return {
       ...toDocumentListItem(document, canEdit),
       openRevision,
@@ -100,7 +112,9 @@ export class DocumentsService {
       withdrawnAt: document.withdrawnAt?.toISOString() ?? null,
       withdrawalReason: document.withdrawalReason,
       createdAt: document.createdAt.toISOString(),
-      canPublish: openRevision !== null && canPublishRevision(user, document, openRevision),
+      canSubmit: openDraft !== undefined && canSubmitRevision(user, document, openDraft),
+      canCancelRevision: openDraft !== undefined && canCancelRevision(user, document, openDraft),
+      approval: approval ? toApprovalRequestDto(user, approval, document) : null,
       canStartRevision: canStartRevision(
         user,
         document,

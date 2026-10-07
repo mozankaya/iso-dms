@@ -14,10 +14,10 @@ import type { Request, Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../../common/types/authenticated-user';
-import { PublishRevisionDto } from './dto/publish-revision.dto';
+import { CancelRevisionDto } from './dto/cancel-revision.dto';
 import { StartRevisionDto } from './dto/start-revision.dto';
 import { contentDisposition } from './download-file-name';
-import { RevisionPublishingService } from './revision-publishing.service';
+import { RevisionCancellationService } from './revision-cancellation.service';
 import { RevisionStartingService } from './revision-starting.service';
 import { RevisionDownload, RevisionsService } from './revisions.service';
 
@@ -35,8 +35,8 @@ function toResponse(download: RevisionDownload, res: Response): StreamableFile {
 export class RevisionsController {
   constructor(
     private readonly revisionsService: RevisionsService,
-    private readonly publishingService: RevisionPublishingService,
     private readonly startingService: RevisionStartingService,
+    private readonly cancellationService: RevisionCancellationService,
   ) {}
 
   @Get('documents/:documentId/revisions')
@@ -56,6 +56,19 @@ export class RevisionsController {
     return this.startingService.start(user, documentId, dto, req.ip ?? null);
   }
 
+  /** Gives up a started revision of a document in force; the draft stays on record as rejected. */
+  @Post('revisions/:id/cancel')
+  @HttpCode(200)
+  @Roles('EDITOR', 'APPROVER', 'QUALITY_MANAGER', 'ADMIN')
+  cancel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CancelRevisionDto,
+    @Req() req: Request,
+  ) {
+    return this.cancellationService.cancel(user, id, dto, req.ip ?? null);
+  }
+
   @Get('documents/:documentId/download')
   async downloadCurrent(
     @CurrentUser() user: AuthenticatedUser,
@@ -64,19 +77,6 @@ export class RevisionsController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     return toResponse(await this.revisionsService.openCurrentDownload(user, documentId, req.ip ?? null), res);
-  }
-
-  /** Simple publication without the approval steps (PROJECT.md 6.4: final approval and publication). */
-  @Post('revisions/:id/publish')
-  @HttpCode(200)
-  @Roles('QUALITY_MANAGER', 'ADMIN')
-  publish(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: PublishRevisionDto,
-    @Req() req: Request,
-  ) {
-    return this.publishingService.publish(user, id, dto, req.ip ?? null);
   }
 
   @Get('revisions/:id/download')

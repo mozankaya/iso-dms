@@ -1,3 +1,5 @@
+import type { UserRole } from './auth';
+
 export const DOCUMENT_STATUSES = ['DRAFT', 'IN_REVIEW', 'PUBLISHED', 'WITHDRAWN'] as const;
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
 
@@ -114,8 +116,6 @@ export interface RevisionHistoryItemDto extends RevisionSummaryDto {
   fileSize: number;
   /** Whether the current user may edit this revision */
   canEdit: boolean;
-  /** Whether the current user may publish this revision */
-  canPublish: boolean;
 }
 
 /** A document with everything the detail page shows, plus the revision the editor opens for the current user. */
@@ -132,8 +132,12 @@ export interface DocumentDetailDto extends DocumentListItemDto {
   withdrawnAt: string | null;
   withdrawalReason: string | null;
   createdAt: string;
-  /** Whether the current user may publish the open revision (see openRevision) */
-  canPublish: boolean;
+  /** Whether the current user may send the open draft to review (needs nobody editing it) */
+  canSubmit: boolean;
+  /** Whether the current user may give up the open draft of a published document */
+  canCancelRevision: boolean;
+  /** The approval of the document's open revision: in progress, or the last one when it was rejected */
+  approval: ApprovalRequestDto | null;
   /** Whether the current user may start a new revision of this (published) document */
   canStartRevision: boolean;
 }
@@ -141,6 +145,62 @@ export interface DocumentDetailDto extends DocumentListItemDto {
 export interface StartRevisionRequest {
   /** What the new revision is going to change; required */
   changeSummary: string;
+}
+
+export const REQUEST_TYPES = ['NEW', 'REVISION', 'WITHDRAWAL'] as const;
+export type RequestType = (typeof REQUEST_TYPES)[number];
+export const REQUEST_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const;
+export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+export const APPROVAL_DECISIONS = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+export type ApprovalDecision = (typeof APPROVAL_DECISIONS)[number];
+
+export interface ApprovalStepDto {
+  id: string;
+  /** 1: the approver of the department, 2: the quality manager */
+  stepOrder: number;
+  approverRole: UserRole;
+  decision: ApprovalDecision;
+  /** Who decided; null while pending */
+  approver: PersonDto | null;
+  comment: string | null;
+  /** ISO 8601 */
+  decidedAt: string | null;
+  /** Whether the current user may decide this step right now */
+  canDecide: boolean;
+}
+
+export interface ApprovalRequestDto {
+  id: string;
+  type: RequestType;
+  status: RequestStatus;
+  /** The revision the request is about */
+  revision: { id: string; revisionNo: number };
+  requestedBy: PersonDto;
+  /** ISO 8601 timestamps */
+  createdAt: string;
+  resolvedAt: string | null;
+  steps: ApprovalStepDto[];
+  /** Whether the current user may take the request back (nobody decided yet) */
+  canCancel: boolean;
+}
+
+/** One step waiting for the current user, with what they need to judge it. */
+export interface PendingApprovalDto {
+  stepId: string;
+  stepOrder: number;
+  approverRole: UserRole;
+  request: { id: string; type: RequestType; createdAt: string; requestedBy: PersonDto };
+  document: { id: string; code: string; title: string; department: DepartmentDto };
+  revision: { id: string; revisionNo: number; changeSummary: string | null };
+}
+
+export interface DecideApprovalRequest {
+  /** Optional when approving, required when rejecting */
+  comment?: string;
+}
+
+export interface CancelRevisionRequest {
+  reason: string;
 }
 
 export type EditorMode = 'edit' | 'view';

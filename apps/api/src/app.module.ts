@@ -7,6 +7,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { validateEnv } from './config/env.validation';
+import { ApprovalsModule } from './modules/approvals/approvals.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -40,6 +41,7 @@ import { PrismaModule } from './prisma/prisma.module';
     TemplatesModule,
     EditorModule,
     RevisionsModule,
+    ApprovalsModule,
   ],
   providers: [
     // Guard order matters: rate limit, then authentication, then role check.

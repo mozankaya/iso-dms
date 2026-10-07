@@ -453,7 +453,10 @@ describe('the list of actions', () => {
   it('matches the actions the application really writes', () => {
     const written = new Set<string>();
     for (const file of sourceFiles(path.resolve(__dirname, '../src'))) {
-      for (const match of readFileSync(file, 'utf8').matchAll(/action: '([A-Z_]+)'/g)) written.add(match[1]);
+      // Everything quoted after "action:" on the line (a condition may choose between two actions)
+      for (const line of readFileSync(file, 'utf8').matchAll(/action: (.*)/g)) {
+        for (const literal of line[1].matchAll(/'([A-Z]+(?:_[A-Z]+)+)'/g)) written.add(literal[1]);
+      }
     }
 
     // A new action has to be added to AUDIT_ACTIONS (packages/shared) and to the Turkish labels of the web app

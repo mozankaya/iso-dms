@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { InputJsonValue } from '@prisma/client/runtime/client';
+import type { AuditAction } from '@iso-dms/shared';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface AuditLogEntry {
   organizationId: string;
   userId?: string | null;
-  action: string;
+  /** Every action is listed in AUDIT_ACTIONS (packages/shared), which the audit screens rely on */
+  action: AuditAction;
   entityType: string;
   entityId: string;
   metadata?: InputJsonValue;
