@@ -4,6 +4,7 @@ delete process.env.LOGIN_RATE_LIMIT;
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createPrismaClient } from '../src/prisma/create-prisma-client';
+import { deleteAuditLogs } from './helpers/audit-cleanup';
 import { createTestApp } from './helpers/create-test-app';
 
 const prisma = createPrismaClient();
@@ -15,9 +16,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Test cleanup only: remove the failed-login audit entries this test produced
-  await prisma.auditLog.deleteMany({
-    where: { action: 'USER_LOGIN_FAILED', metadata: { path: ['email'], equals: 'nobody@rate-limit.local' } },
-  });
+  await deleteAuditLogs(prisma, { action: 'USER_LOGIN_FAILED', metadata: { path: ['email'], equals: 'nobody@rate-limit.local' } });
   await prisma.$disconnect();
   await app.close();
 });

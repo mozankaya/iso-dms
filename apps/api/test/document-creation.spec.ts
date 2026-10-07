@@ -11,6 +11,7 @@ import type { UserRole } from '../src/generated/prisma/enums';
 import { DocumentCodeService } from '../src/modules/documents/document-code.service';
 import { StorageService } from '../src/modules/storage/storage.service';
 import { createPrismaClient } from '../src/prisma/create-prisma-client';
+import { deleteAuditLogs } from './helpers/audit-cleanup';
 import { createTestApp } from './helpers/create-test-app';
 import { signToken } from './helpers/tokens';
 
@@ -136,7 +137,7 @@ afterAll(async () => {
   const templates = await prisma.template.findMany({ where: { organizationId: { in: organizationIds } } });
   await Promise.all([...revisions, ...templates].map((item) => storage.delete(item.storageKey).catch(() => undefined)));
 
-  await prisma.auditLog.deleteMany({ where: { organizationId: { in: organizationIds } } });
+  await deleteAuditLogs(prisma, { organizationId: { in: organizationIds } });
   await prisma.revision.deleteMany({ where: { organizationId: { in: organizationIds } } });
   await prisma.document.deleteMany({ where: { organizationId: { in: organizationIds } } });
   await prisma.template.deleteMany({ where: { organizationId: { in: organizationIds } } });

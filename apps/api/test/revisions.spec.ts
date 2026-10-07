@@ -10,6 +10,7 @@ import type { DocumentStatus, RevisionStatus, UserRole } from '../src/generated/
 import { buildRevisionKey } from '../src/modules/storage/storage-keys';
 import { StorageService } from '../src/modules/storage/storage.service';
 import { createPrismaClient } from '../src/prisma/create-prisma-client';
+import { deleteAuditLogs } from './helpers/audit-cleanup';
 import { createTestApp } from './helpers/create-test-app';
 import { signToken } from './helpers/tokens';
 
@@ -191,7 +192,7 @@ afterAll(async () => {
   // Test cleanup only: the application never deletes revisions or their files
   const revisions = await prisma.revision.findMany({ where: { organizationId: { in: organizationIds } } });
   await Promise.all(revisions.map((revision) => storage.delete(revision.storageKey).catch(() => undefined)));
-  await prisma.auditLog.deleteMany({ where: { organizationId: { in: organizationIds } } });
+  await deleteAuditLogs(prisma, { organizationId: { in: organizationIds } });
   await prisma.document.updateMany({ where: { organizationId: { in: organizationIds } }, data: { currentRevisionId: null } });
   await prisma.revision.deleteMany({ where: { organizationId: { in: organizationIds } } });
   await prisma.document.deleteMany({ where: { organizationId: { in: organizationIds } } });
