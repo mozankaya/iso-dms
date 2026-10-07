@@ -98,6 +98,26 @@ describe("describeEntry", () => {
     expect(describe_("REVISION_STARTED", null)).toBe("");
   });
 
+  it("says what kind of request was sent to review", () => {
+    expect(describe_("REVISION_SUBMITTED", { type: "NEW" })).toBe(d.submittedAs("NEW"));
+    expect(describe_("REVISION_SUBMITTED", { type: "REVISION" })).toBe(d.submittedAs("REVISION"));
+    expect(describe_("REVISION_SUBMITTED", null)).toBe(d.submittedAs("REVISION"));
+  });
+
+  it("describes a decision with its step and comment, and marks the last approval", () => {
+    expect(describe_("APPROVAL_APPROVED", { stepOrder: 1, comment: "Uygundur", final: false })).toBe(`${d.step(1)} · Uygundur`);
+    expect(describe_("APPROVAL_APPROVED", { stepOrder: 2, final: true })).toBe(`${d.step(2)} · ${d.finalApproval}`);
+    expect(describe_("APPROVAL_REJECTED", { stepOrder: 1, comment: "Madde 2 eksik", final: false })).toBe(`${d.step(1)} · Madde 2 eksik`);
+  });
+
+  it("shows why a revision was given up", () => {
+    expect(describe_("REVISION_CANCELLED", { reason: "Artık gerekli değil" })).toBe("Artık gerekli değil");
+  });
+
+  it.each(["REQUEST_CANCELLED"])("has nothing to add for %s", (action) => {
+    expect(describe_(action, { requestId: "x" })).toBe("");
+  });
+
   it("tells a manual save from the save at the end of a session, with the size", () => {
     expect(describe_("REVISION_SAVED", { forceSave: true, fileSize: 24576 })).toBe(`${d.savedManually} · 24 KB`);
     expect(describe_("REVISION_SAVED", { forceSave: false, fileSize: 2048 })).toBe(`${d.savedOnClose} · 2 KB`);

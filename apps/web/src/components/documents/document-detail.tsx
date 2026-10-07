@@ -4,12 +4,15 @@ import type { DocumentDetailDto } from "@iso-dms/shared";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
+import { ApprovalPanel } from "@/components/documents/approval-panel";
+import { CancelRevisionButton } from "@/components/documents/cancel-revision-button";
 import { DocumentHistory } from "@/components/audit/document-history";
 import { DownloadButton } from "@/components/documents/download-button";
-import { PublishButton } from "@/components/documents/publish-button";
 import { RevisionHistory } from "@/components/documents/revision-history";
 import { StartRevisionButton } from "@/components/documents/start-revision-button";
+import { SubmitButton } from "@/components/documents/submit-button";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -73,6 +76,8 @@ function DocumentInfo({ document }: { document: DocumentDetailDto }) {
 
 export function DocumentDetail({ documentId }: { documentId: string }) {
   const { user } = useAuth();
+  // The editor sends authors here to send the draft to review (see EditorScreen)
+  const sendRequested = useSearchParams().get("submit") === "1";
   // Opening the page always shows the current state: the editor may have changed the files since
   const document = useQuery({
     queryKey: ["document", documentId],
@@ -133,8 +138,11 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {doc.canPublish && doc.openRevision && (
-              <PublishButton documentId={doc.id} code={doc.code} revision={doc.openRevision} />
+            {doc.canSubmit && doc.openRevision && (
+              <SubmitButton documentId={doc.id} code={doc.code} revision={doc.openRevision} autoOpen={sendRequested} />
+            )}
+            {doc.canCancelRevision && doc.openRevision && (
+              <CancelRevisionButton documentId={doc.id} code={doc.code} revision={doc.openRevision} />
             )}
             {doc.canStartRevision && <StartRevisionButton documentId={doc.id} code={doc.code} />}
             {doc.openRevision && (
@@ -154,6 +162,8 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
       )}
 
       <DocumentInfo document={doc} />
+
+      <ApprovalPanel document={doc} />
 
       <section aria-labelledby="revision-history-heading" className="space-y-3">
         <h2 id="revision-history-heading" className="text-lg font-semibold">

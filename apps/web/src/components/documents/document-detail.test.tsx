@@ -18,7 +18,11 @@ vi.mock("@/lib/api/endpoints", async (importOriginal) => ({
   getRevisions: (id: string) => getRevisions(id),
   getDocumentAuditLogs: (id: string, query: unknown) => getDocumentAuditLogs(id, query),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+let search = "";
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(search),
+}));
 vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => ({ status: "authenticated", user: { id: "u1", role }, login: vi.fn(), logout: vi.fn() }),
 }));
@@ -51,6 +55,7 @@ beforeEach(() => {
   getRevisions.mockReset();
   getDocumentAuditLogs.mockReset();
   role = "READER";
+  search = "";
   getDocument.mockResolvedValue(documentDetail());
   getRevisions.mockResolvedValue([revisionRow()]);
 });
@@ -130,42 +135,60 @@ describe("DocumentDetail", () => {
       expect(documentDownload()).toBeDefined();
     });
 
-    it("offers publishing the open draft to those who may", async () => {
+    const draftDetail = (overrides = {}) =>
+      documentDetail({
+        status: "DRAFT",
+        canEdit: true,
+        canSubmit: true,
+        currentRevisionId: null,
+        openRevision: { id: "rev-9", revisionNo: 0, status: "DRAFT", changeSummary: null },
+        ...overrides,
+      });
+
+    it("offers sending the open draft to review to those who may", async () => {
+      getDocument.mockResolvedValue(draftDetail());
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(screen.getByRole("button", { name: tr.submit.button })).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("opens the dialog right away when the editor sent the author here", async () => {
+      search = "submit=1";
+      getDocument.mockResolvedValue(draftDetail());
+      renderDetail();
+
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: tr.submit.dialogTitle })).toBeInTheDocument();
+    });
+
+    it("hides the submit button from everybody else", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(screen.queryByRole("button", { name: tr.submit.button })).not.toBeInTheDocument();
+    });
+
+    it("offers giving up a started revision to those who may", async () => {
       getDocument.mockResolvedValue(
         documentDetail({
-          status: "DRAFT",
-          canEdit: true,
-          canPublish: true,
-          currentRevisionId: null,
-          openRevision: { id: "rev-9", revisionNo: 0, status: "DRAFT", changeSummary: null },
+          canCancelRevision: true,
+          canSubmit: true,
+          openRevision: { id: "rev-9", revisionNo: 3, status: "DRAFT", changeSummary: "Madde 4" },
         }),
       );
       renderDetail();
       await screen.findByRole("heading", { level: 1 });
 
-      expect(screen.getByRole("button", { name: tr.publish.button })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: tr.cancelRevision.button })).toBeInTheDocument();
     });
 
-    it("offers starting a revision to those who may, on a document in force", async () => {
-      getDocument.mockResolvedValue(documentDetail({ canStartRevision: true }));
+    it("hides the give up button from everybody else", async () => {
       renderDetail();
       await screen.findByRole("heading", { level: 1 });
 
-      expect(screen.getByRole("button", { name: tr.startRevision.button })).toBeInTheDocument();
-    });
-
-    it("hides the start button from everybody else, and while a revision is open", async () => {
-      renderDetail();
-      await screen.findByRole("heading", { level: 1 });
-
-      expect(screen.queryByRole("button", { name: tr.startRevision.button })).not.toBeInTheDocument();
-    });
-
-    it("hides the publish button from everybody else", async () => {
-      renderDetail();
-      await screen.findByRole("heading", { level: 1 });
-
-      expect(screen.queryByRole("button", { name: tr.publish.button })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: tr.cancelRevision.button })).not.toBeInTheDocument();
     });
 
     it("offers viewing otherwise", async () => {
@@ -273,6 +296,40 @@ describe("DocumentDetail", () => {
       await userEvent.click(screen.getByRole("button", { name: tr.common.retry }));
       expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
     });
+  });
+});
+
+describe("DocumentDetail approval", () => {
+  it("shows the approval of the revision under review", async () => {
+    getDocument.mockResolvedValue(
+      documentDetail({
+        status: "IN_REVIEW",
+        approval: {
+          id: "req-1",
+          type: "NEW",
+          status: "PENDING",
+          revision: { id: "rev-2", revisionNo: 0 },
+          requestedBy: { id: "user-1", fullName: "Ece Editör" },
+          createdAt: "2025-06-01T09:30:00.000Z",
+          resolvedAt: null,
+          steps: [
+            { id: "s1", stepOrder: 1, approverRole: "APPROVER", decision: "PENDING", approver: null, comment: null, decidedAt: null, canDecide: false },
+            { id: "s2", stepOrder: 2, approverRole: "QUALITY_MANAGER", decision: "PENDING", approver: null, comment: null, decidedAt: null, canDecide: false },
+          ],
+          canCancel: false,
+        },
+      }),
+    );
+    renderDetail();
+
+    expect(await screen.findByRole("heading", { name: tr.approval.title })).toBeInTheDocument();
+  });
+
+  it("shows no approval section when there is none", async () => {
+    renderDetail();
+    await screen.findByRole("heading", { level: 1 });
+
+    expect(screen.queryByRole("heading", { name: tr.approval.title })).not.toBeInTheDocument();
   });
 });
 

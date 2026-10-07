@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 
-/** The "what changed" text box shared by the dialogs that start and publish a revision. */
-export function ChangeSummaryField({
+/** A labelled text box for the short free text the dialogs ask for (a summary, a comment, a reason). */
+export function TextAreaField({
   id,
   label,
   hint,

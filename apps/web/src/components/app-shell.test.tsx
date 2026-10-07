@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { tr } from "@/lib/i18n/tr";
 import { AppShell } from "./app-shell";
 
 let role = "READER";
 let pathname = "/";
+const getPendingApprovals = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
@@ -22,6 +23,7 @@ vi.mock("@/lib/auth/use-require-auth", () => ({
 vi.mock("@/lib/api/endpoints", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api/endpoints")>()),
   getCategories: () => Promise.resolve([]),
+  getPendingApprovals: (page: number) => getPendingApprovals(page),
 }));
 
 function renderShell() {
@@ -38,6 +40,8 @@ function renderShell() {
 beforeEach(() => {
   role = "READER";
   pathname = "/";
+  getPendingApprovals.mockReset();
+  getPendingApprovals.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
 });
 
 describe("AppShell navigation", () => {
@@ -64,5 +68,47 @@ describe("AppShell navigation", () => {
 
     expect(screen.getByRole("link", { name: tr.nav.auditLog })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: tr.nav.home })).not.toHaveAttribute("aria-current");
+  });
+});
+
+describe("AppShell approvals", () => {
+  it.each(["READER", "EDITOR"])("has no approvals link for %s, and does not ask for waiting steps", (who) => {
+    role = who;
+    renderShell();
+
+    expect(screen.queryByRole("link", { name: new RegExp(tr.nav.approvals) })).not.toBeInTheDocument();
+    expect(getPendingApprovals).not.toHaveBeenCalled();
+  });
+
+  it.each(["APPROVER", "QUALITY_MANAGER", "ADMIN"])("links the approvals for %s", async (who) => {
+    role = who;
+    renderShell();
+
+    expect(screen.getByRole("link", { name: new RegExp(tr.nav.approvals) })).toHaveAttribute("href", "/approvals");
+    await waitFor(() => expect(getPendingApprovals).toHaveBeenCalledWith(1));
+  });
+
+  it("shows how many steps wait for the user", async () => {
+    role = "APPROVER";
+    getPendingApprovals.mockResolvedValue({ items: [], total: 3, page: 1, pageSize: 20 });
+    renderShell();
+
+    expect(await screen.findByLabelText(tr.approvals.total(3))).toHaveTextContent("3");
+  });
+
+  it("shows no badge when nothing waits", async () => {
+    role = "APPROVER";
+    renderShell();
+    await waitFor(() => expect(getPendingApprovals).toHaveBeenCalled());
+
+    expect(screen.queryByLabelText(/bekleyen onay/)).not.toBeInTheDocument();
+  });
+
+  it("marks the approvals as the current page when they are open", () => {
+    role = "QUALITY_MANAGER";
+    pathname = "/approvals";
+    renderShell();
+
+    expect(screen.getByRole("link", { name: new RegExp(tr.nav.approvals) })).toHaveAttribute("aria-current", "page");
   });
 });

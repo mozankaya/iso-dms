@@ -12,9 +12,11 @@ import type {
   EditorSessionDto,
   FileType,
   PaginatedDto,
+  PendingApprovalDto,
   RevisionHistoryItemDto,
   TemplateDto,
 } from "@iso-dms/shared";
+import { DEFAULT_PAGE_SIZE } from "@iso-dms/shared";
 import { apiFetch, apiFetchPublic } from "./client";
 
 export function login(email: string, password: string): Promise<AuthResponseDto> {
@@ -115,9 +117,28 @@ export function startRevision(documentId: string, changeSummary: string): Promis
   });
 }
 
-export function publishRevision(revisionId: string, changeSummary?: string): Promise<DocumentDetailDto> {
-  return apiFetch<DocumentDetailDto>(`/revisions/${encodeURIComponent(revisionId)}/publish`, {
+export function submitRevision(revisionId: string): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/revisions/${encodeURIComponent(revisionId)}/submit`, { method: "POST" });
+}
+
+export function decideApproval(stepId: string, decision: "approve" | "reject", comment?: string): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/approvals/${encodeURIComponent(stepId)}/${decision}`, {
     method: "POST",
-    body: JSON.stringify(changeSummary ? { changeSummary } : {}),
+    body: JSON.stringify(comment ? { comment } : {}),
   });
+}
+
+export function cancelApprovalRequest(requestId: string): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/approval-requests/${encodeURIComponent(requestId)}/cancel`, { method: "POST" });
+}
+
+export function cancelRevision(revisionId: string, reason: string): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/revisions/${encodeURIComponent(revisionId)}/cancel`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export function getPendingApprovals(page = 1): Promise<PaginatedDto<PendingApprovalDto>> {
+  return apiFetch<PaginatedDto<PendingApprovalDto>>(`/approvals/pending?page=${page}&pageSize=${DEFAULT_PAGE_SIZE}`);
 }

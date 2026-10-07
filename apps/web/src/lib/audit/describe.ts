@@ -42,6 +42,20 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
       parts.push(text(metadata, "changeSummary"));
       break;
     }
+    case "REVISION_SUBMITTED":
+      parts.push(t.details.submittedAs(text(metadata, "type") ?? "REVISION"));
+      break;
+    case "APPROVAL_APPROVED":
+    case "APPROVAL_REJECTED": {
+      const step = number(metadata, "stepOrder");
+      parts.push(step !== null ? t.details.step(step) : null);
+      parts.push(metadata?.final === true ? t.details.finalApproval : null);
+      parts.push(text(metadata, "comment"));
+      break;
+    }
+    case "REVISION_CANCELLED":
+      parts.push(text(metadata, "reason"));
+      break;
     case "REVISION_SAVED":
       parts.push(metadata?.forceSave === true ? t.details.savedManually : t.details.savedOnClose);
       parts.push(formatFileSize(number(metadata, "fileSize")));

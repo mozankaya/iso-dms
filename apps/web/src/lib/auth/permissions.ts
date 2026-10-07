@@ -13,6 +13,13 @@ export function canViewAuditLog(role: UserRole | undefined): boolean {
   return role !== undefined && AUDIT_LOG_ROLES.includes(role);
 }
 
+/** The roles that hold approval steps (PROJECT.md 6.3); the administrator may give either step. */
+const APPROVAL_ROLES: readonly UserRole[] = ["APPROVER", "QUALITY_MANAGER", "ADMIN"];
+
+export function canDecideApprovals(role: UserRole | undefined): boolean {
+  return role !== undefined && APPROVAL_ROLES.includes(role);
+}
+
 export function canCreateDocuments(role: UserRole | undefined): boolean {
   return role !== undefined && DOCUMENT_CREATOR_ROLES.includes(role);
 }

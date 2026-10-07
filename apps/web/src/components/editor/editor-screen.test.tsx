@@ -67,6 +67,33 @@ beforeEach(() => {
   loadOnlyOfficeApi.mockResolvedValue(undefined);
 });
 
+describe("EditorScreen sending to review", () => {
+  it("offers sending the draft to review to those who may, which leads to the document page", async () => {
+    getDocument.mockResolvedValue(documentDetail({ canSubmit: true }));
+    renderScreen();
+    await screen.findByTestId("editor");
+
+    expect(screen.getByRole("link", { name: tr.submit.button })).toHaveAttribute("href", `/documents/${DOCUMENT_ID}?submit=1`);
+  });
+
+  it("offers nothing to everybody else", async () => {
+    getDocument.mockResolvedValue(documentDetail({ canSubmit: false }));
+    renderScreen();
+    await screen.findByTestId("editor");
+
+    expect(screen.queryByRole("link", { name: tr.submit.button })).not.toBeInTheDocument();
+  });
+
+  it("offers nothing in a read only session", async () => {
+    getDocument.mockResolvedValue(documentDetail({ canSubmit: true }));
+    getEditorSession.mockResolvedValue(session({ mode: "view" }));
+    renderScreen();
+    await screen.findByTestId("editor");
+
+    expect(screen.queryByRole("link", { name: tr.submit.button })).not.toBeInTheDocument();
+  });
+});
+
 describe("EditorScreen", () => {
   it("shows a preparing message and then the editor with the signed configuration", async () => {
     renderScreen();

@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useId, useState } from "react";
-import { ChangeSummaryField } from "@/components/documents/change-summary-field";
+import { TextAreaField } from "@/components/documents/text-area-field";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { ApiError } from "@/lib/api/client";
@@ -63,7 +63,7 @@ export function StartRevisionButton({ documentId, code }: { documentId: string; 
         <form onSubmit={submit} className="space-y-4" noValidate>
           <p className="text-sm">{t.confirm(code)}</p>
 
-          <ChangeSummaryField
+          <TextAreaField
             id={summaryId}
             label={t.changeSummary}
             hint={t.changeSummaryHint}

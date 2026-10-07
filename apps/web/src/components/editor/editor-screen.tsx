@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { OnlyOfficeEditor } from "@/components/editor/onlyoffice-editor";
 import { StatusBadge } from "@/components/documents/status-badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
 import { getDocument, getEditorSession } from "@/lib/api/endpoints";
 import { errorMessage, tr } from "@/lib/i18n/tr";
@@ -130,6 +130,11 @@ export function EditorScreen({
         {mode && (
           <div className="ml-auto flex items-center gap-3 text-sm">
             {mode === "edit" && <span className="hidden text-muted sm:inline">{tr.editor.autosaveHint}</span>}
+            {mode === "edit" && document.data?.canSubmit && (
+              <Link href={`/documents/${documentId}?submit=1`} className={buttonVariants({ size: "sm" })}>
+                {tr.submit.button}
+              </Link>
+            )}
             <span
               className={cn(
                 "rounded-full px-2.5 py-0.5 text-xs font-medium",

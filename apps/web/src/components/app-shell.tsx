@@ -1,14 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Home, LogOut, Menu, ScrollText, X } from "lucide-react";
+import { ClipboardCheck, Home, LogOut, Menu, ScrollText, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
-import { getCategories } from "@/lib/api/endpoints";
-import { canViewAuditLog } from "@/lib/auth/permissions";
+import { getCategories, getPendingApprovals } from "@/lib/api/endpoints";
+import { canDecideApprovals, canViewAuditLog } from "@/lib/auth/permissions";
 import { useRequireAuth } from "@/lib/auth/use-require-auth";
 import { tr } from "@/lib/i18n/tr";
 import { cn } from "@/lib/utils";
@@ -50,6 +50,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     enabled: status === "authenticated",
   });
 
+  // The number of steps waiting for the user, for the badge of "Onaylarım"
+  const waiting = useQuery({
+    queryKey: ["approvals-pending", "badge"],
+    queryFn: () => getPendingApprovals(1),
+    enabled: status === "authenticated" && canDecideApprovals(user?.role),
+    refetchInterval: 60_000,
+  });
+
   const closeMenu = () => setMenuOpen(false);
 
   if (status !== "authenticated") {
@@ -84,6 +92,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Home className="h-4 w-4" aria-hidden="true" />
             {tr.nav.home}
           </NavLink>
+
+          {canDecideApprovals(user?.role) && (
+            <NavLink href="/approvals" active={pathname === "/approvals"} onNavigate={closeMenu}>
+              <ClipboardCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="flex-1">{tr.nav.approvals}</span>
+              {(waiting.data?.total ?? 0) > 0 && (
+                <span
+                  className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground"
+                  aria-label={tr.approvals.total(waiting.data!.total)}
+                >
+                  {waiting.data!.total}
+                </span>
+              )}
+            </NavLink>
+          )}
 
           <p className="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">
             {tr.nav.categories}
