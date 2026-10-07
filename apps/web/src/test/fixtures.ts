@@ -1,4 +1,4 @@
-import type { DocumentDetailDto, DocumentListItemDto, RevisionHistoryItemDto } from "@iso-dms/shared";
+import type { AuditLogDto, DocumentDetailDto, DocumentListItemDto, RevisionHistoryItemDto } from "@iso-dms/shared";
 
 export function documentListItem(overrides: Partial<DocumentListItemDto> = {}): DocumentListItemDto {
   return {
@@ -50,6 +50,21 @@ export function revisionRow(overrides: Partial<RevisionHistoryItemDto> = {}): Re
     fileSize: 24576,
     canEdit: false,
     canPublish: false,
+    ...overrides,
+  };
+}
+
+export function auditLogEntry(overrides: Partial<AuditLogDto> = {}): AuditLogDto {
+  return {
+    id: "audit-1",
+    action: "DOCUMENT_OPENED",
+    entityType: "Document",
+    entityId: "doc-1",
+    createdAt: "2025-06-01T09:30:00.000Z",
+    user: { id: "user-1", fullName: "Ece Editör", email: "ece@example.com" },
+    document: { id: "doc-1", code: "PR-KK-001", title: "Doküman Kontrol Prosedürü", revisionNo: null },
+    metadata: { mode: "edit", revisionNo: 2 },
+    ipAddress: null,
     ...overrides,
   };
 }

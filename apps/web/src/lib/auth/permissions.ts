@@ -6,6 +6,13 @@ const DOCUMENT_CREATOR_ROLES: readonly UserRole[] = ["EDITOR", "APPROVER", "QUAL
 /** These roles may only create documents in their own department. */
 const DEPARTMENT_BOUND_ROLES: readonly UserRole[] = ["EDITOR", "APPROVER"];
 
+/** PROJECT.md 6.4: the audit trail is for quality managers and administrators. */
+const AUDIT_LOG_ROLES: readonly UserRole[] = ["QUALITY_MANAGER", "ADMIN"];
+
+export function canViewAuditLog(role: UserRole | undefined): boolean {
+  return role !== undefined && AUDIT_LOG_ROLES.includes(role);
+}
+
 export function canCreateDocuments(role: UserRole | undefined): boolean {
   return role !== undefined && DOCUMENT_CREATOR_ROLES.includes(role);
 }

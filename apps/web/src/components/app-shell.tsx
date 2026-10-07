@@ -1,13 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Home, LogOut, Menu, X } from "lucide-react";
+import { Home, LogOut, Menu, ScrollText, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
 import { getCategories } from "@/lib/api/endpoints";
+import { canViewAuditLog } from "@/lib/auth/permissions";
 import { useRequireAuth } from "@/lib/auth/use-require-auth";
 import { tr } from "@/lib/i18n/tr";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               </NavLink>
             );
           })}
+
+          {canViewAuditLog(user?.role) && (
+            <>
+              <p className="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                {tr.nav.administration}
+              </p>
+              <NavLink href="/admin/audit-logs" active={pathname === "/admin/audit-logs"} onNavigate={closeMenu}>
+                <ScrollText className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {tr.nav.auditLog}
+              </NavLink>
+            </>
+          )}
         </nav>
       </aside>
 

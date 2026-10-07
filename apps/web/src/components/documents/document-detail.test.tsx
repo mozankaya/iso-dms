@@ -4,16 +4,22 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/client";
 import { tr } from "@/lib/i18n/tr";
-import { documentDetail, revisionRow } from "@/test/fixtures";
+import { auditLogEntry, documentDetail, revisionRow } from "@/test/fixtures";
 import { DocumentDetail } from "./document-detail";
 
 const getDocument = vi.fn();
 const getRevisions = vi.fn();
+const getDocumentAuditLogs = vi.fn();
+let role = "READER";
 
 vi.mock("@/lib/api/endpoints", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api/endpoints")>()),
   getDocument: (id: string) => getDocument(id),
   getRevisions: (id: string) => getRevisions(id),
+  getDocumentAuditLogs: (id: string, query: unknown) => getDocumentAuditLogs(id, query),
+}));
+vi.mock("@/lib/auth/auth-context", () => ({
+  useAuth: () => ({ status: "authenticated", user: { id: "u1", role }, login: vi.fn(), logout: vi.fn() }),
 }));
 vi.mock("@/components/documents/download-button", () => ({
   DownloadButton: ({ path }: { path: string }) => (
@@ -42,6 +48,8 @@ function renderDetail() {
 beforeEach(() => {
   getDocument.mockReset();
   getRevisions.mockReset();
+  getDocumentAuditLogs.mockReset();
+  role = "READER";
   getDocument.mockResolvedValue(documentDetail());
   getRevisions.mockResolvedValue([revisionRow()]);
 });
@@ -249,5 +257,39 @@ describe("DocumentDetail", () => {
       await userEvent.click(screen.getByRole("button", { name: tr.common.retry }));
       expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
     });
+  });
+});
+
+describe("DocumentDetail audit history", () => {
+  const history = () => screen.queryByRole("heading", { name: tr.audit.documentTitle });
+
+  it.each(["READER", "EDITOR", "APPROVER"])("is not offered to %s", async (who) => {
+    role = who;
+    renderDetail();
+    await screen.findByRole("heading", { level: 1 });
+
+    expect(history()).not.toBeInTheDocument();
+    expect(getDocumentAuditLogs).not.toHaveBeenCalled();
+  });
+
+  it.each(["QUALITY_MANAGER", "ADMIN"])("is offered to %s, closed at first", async (who) => {
+    role = who;
+    renderDetail();
+    await screen.findByRole("heading", { level: 1 });
+
+    expect(history()).toBeInTheDocument();
+    expect(getDocumentAuditLogs).not.toHaveBeenCalled();
+  });
+
+  it("shows the history of this document once it is opened", async () => {
+    role = "QUALITY_MANAGER";
+    getDocumentAuditLogs.mockResolvedValue({ items: [auditLogEntry()], total: 1, page: 1, pageSize: 20 });
+    renderDetail();
+    await screen.findByRole("heading", { level: 1 });
+
+    await userEvent.click(screen.getByRole("button", { name: tr.audit.show }));
+
+    expect(await screen.findByRole("table", { name: tr.audit.tableLabel })).toBeInTheDocument();
+    expect(getDocumentAuditLogs).toHaveBeenCalledWith("doc-1", { page: 1, pageSize: 20 });
   });
 });

@@ -1,4 +1,6 @@
 import type {
+  AuditLogPage,
+  AuditLogQuery,
   AuthResponseDto,
   CategoryDto,
   CreateDocumentRequest,
@@ -88,6 +90,23 @@ export const downloadPath = {
   revision: (revisionId: string) => `/revisions/${encodeURIComponent(revisionId)}/download`,
   current: (documentId: string) => `/documents/${encodeURIComponent(documentId)}/download`,
 };
+
+function auditQueryString(query: AuditLogQuery): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  const text = search.toString();
+  return text ? `?${text}` : "";
+}
+
+export function getAuditLogs(query: AuditLogQuery): Promise<AuditLogPage> {
+  return apiFetch<AuditLogPage>(`/audit-logs${auditQueryString(query)}`);
+}
+
+export function getDocumentAuditLogs(documentId: string, query: AuditLogQuery): Promise<AuditLogPage> {
+  return apiFetch<AuditLogPage>(`/documents/${encodeURIComponent(documentId)}/audit-logs${auditQueryString(query)}`);
+}
 
 export function publishRevision(revisionId: string, changeSummary?: string): Promise<DocumentDetailDto> {
   return apiFetch<DocumentDetailDto>(`/revisions/${encodeURIComponent(revisionId)}/publish`, {

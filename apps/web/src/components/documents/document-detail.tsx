@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { DocumentHistory } from "@/components/audit/document-history";
 import { DownloadButton } from "@/components/documents/download-button";
 import { PublishButton } from "@/components/documents/publish-button";
 import { RevisionHistory } from "@/components/documents/revision-history";
@@ -13,6 +14,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ApiError } from "@/lib/api/client";
 import { downloadPath, getDocument, getRevisions } from "@/lib/api/endpoints";
+import { useAuth } from "@/lib/auth/auth-context";
+import { canViewAuditLog } from "@/lib/auth/permissions";
 import { formatDate } from "@/lib/format";
 import { tr } from "@/lib/i18n/tr";
 
@@ -68,6 +71,7 @@ function DocumentInfo({ document }: { document: DocumentDetailDto }) {
 }
 
 export function DocumentDetail({ documentId }: { documentId: string }) {
+  const { user } = useAuth();
   // Opening the page always shows the current state: the editor may have changed the files since
   const document = useQuery({
     queryKey: ["document", documentId],
@@ -168,6 +172,8 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
         )}
         {revisions.isSuccess && <RevisionHistory documentId={doc.id} code={doc.code} documentStatus={doc.status} revisions={revisions.data} />}
       </section>
+
+      {canViewAuditLog(user?.role) && <DocumentHistory documentId={doc.id} showAddress={user?.role === "ADMIN"} />}
     </div>
   );
 }
