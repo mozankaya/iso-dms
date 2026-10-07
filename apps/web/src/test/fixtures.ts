@@ -20,7 +20,7 @@ export function documentListItem(overrides: Partial<DocumentListItemDto> = {}): 
 export function documentDetail(overrides: Partial<DocumentDetailDto> = {}): DocumentDetailDto {
   return {
     ...documentListItem(),
-    openRevision: { id: "rev-2", revisionNo: 2, status: "APPROVED" },
+    openRevision: { id: "rev-2", revisionNo: 2, status: "APPROVED", changeSummary: "Madde 3 güncellendi" },
     category: { id: "cat-pr", name: "Prosedürler", slug: "procedures" },
     owner: { id: "user-1", fullName: "Ece Editör" },
     currentRevisionId: "rev-2",
@@ -31,6 +31,7 @@ export function documentDetail(overrides: Partial<DocumentDetailDto> = {}): Docu
     withdrawalReason: null,
     createdAt: "2024-12-01T09:00:00.000Z",
     canPublish: false,
+    canStartRevision: false,
     ...overrides,
   };
 }

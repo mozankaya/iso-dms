@@ -1,10 +1,10 @@
 "use client";
 
-import type { RevisionSummaryDto } from "@iso-dms/shared";
+import type { OpenRevisionDto } from "@iso-dms/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useId, useState } from "react";
+import { ChangeSummaryField } from "@/components/documents/change-summary-field";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { ApiError } from "@/lib/api/client";
 import { publishRevision } from "@/lib/api/endpoints";
@@ -26,19 +26,20 @@ export function PublishButton({
 }: {
   documentId: string;
   code: string;
-  revision: RevisionSummaryDto;
+  revision: OpenRevisionDto;
 }) {
   const queryClient = useQueryClient();
   const summaryId = useId();
   const [open, setOpen] = useState(false);
-  const [summary, setSummary] = useState("");
+  const [summary, setSummary] = useState(revision.changeSummary ?? "");
   const [error, setError] = useState<string | null>(null);
   const needsSummary = revision.revisionNo > 0;
 
   const publish = useMutation({ mutationFn: () => publishRevision(revision.id, summary.trim() || undefined) });
 
   function openDialog() {
-    setSummary("");
+    // What the author said when the revision was started; the publisher may correct it
+    setSummary(revision.changeSummary ?? "");
     setError(null);
     setOpen(true);
   }
@@ -73,19 +74,14 @@ export function PublishButton({
           <p className="text-sm">{t.confirm(code, revision.revisionNo)}</p>
 
           {needsSummary && (
-            <div className="space-y-1.5">
-              <Label htmlFor={summaryId}>{t.changeSummary}</Label>
-              <textarea
-                id={summaryId}
-                value={summary}
-                onChange={(event) => setSummary(event.target.value)}
-                rows={3}
-                maxLength={2000}
-                placeholder={t.changeSummaryHint}
-                aria-invalid={error === t.changeSummaryRequired ? true : undefined}
-                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm placeholder:text-muted focus-visible:outline-2 focus-visible:outline-primary aria-invalid:border-destructive"
-              />
-            </div>
+            <ChangeSummaryField
+              id={summaryId}
+              label={t.changeSummary}
+              hint={t.changeSummaryHint}
+              value={summary}
+              onChange={setSummary}
+              invalid={error === t.changeSummaryRequired}
+            />
           )}
 
           {error && (

@@ -18,6 +18,7 @@ vi.mock("@/lib/api/endpoints", async (importOriginal) => ({
   getRevisions: (id: string) => getRevisions(id),
   getDocumentAuditLogs: (id: string, query: unknown) => getDocumentAuditLogs(id, query),
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => ({ status: "authenticated", user: { id: "u1", role }, login: vi.fn(), logout: vi.fn() }),
 }));
@@ -136,13 +137,28 @@ describe("DocumentDetail", () => {
           canEdit: true,
           canPublish: true,
           currentRevisionId: null,
-          openRevision: { id: "rev-9", revisionNo: 0, status: "DRAFT" },
+          openRevision: { id: "rev-9", revisionNo: 0, status: "DRAFT", changeSummary: null },
         }),
       );
       renderDetail();
       await screen.findByRole("heading", { level: 1 });
 
       expect(screen.getByRole("button", { name: tr.publish.button })).toBeInTheDocument();
+    });
+
+    it("offers starting a revision to those who may, on a document in force", async () => {
+      getDocument.mockResolvedValue(documentDetail({ canStartRevision: true }));
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(screen.getByRole("button", { name: tr.startRevision.button })).toBeInTheDocument();
+    });
+
+    it("hides the start button from everybody else, and while a revision is open", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(screen.queryByRole("button", { name: tr.startRevision.button })).not.toBeInTheDocument();
     });
 
     it("hides the publish button from everybody else", async () => {

@@ -9,6 +9,7 @@ import { DocumentHistory } from "@/components/audit/document-history";
 import { DownloadButton } from "@/components/documents/download-button";
 import { PublishButton } from "@/components/documents/publish-button";
 import { RevisionHistory } from "@/components/documents/revision-history";
+import { StartRevisionButton } from "@/components/documents/start-revision-button";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -135,6 +136,7 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
             {doc.canPublish && doc.openRevision && (
               <PublishButton documentId={doc.id} code={doc.code} revision={doc.openRevision} />
             )}
+            {doc.canStartRevision && <StartRevisionButton documentId={doc.id} code={doc.code} />}
             {doc.openRevision && (
               <Link href={`/documents/${doc.id}/edit`} className={buttonVariants()}>
                 {doc.canEdit ? t.edit : t.view}

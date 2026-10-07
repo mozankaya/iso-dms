@@ -16,12 +16,12 @@ vi.mock("@/lib/api/endpoints", () => ({
 
 let client: QueryClient;
 
-function renderButton(revisionNo = 0) {
+function renderButton(revisionNo = 0, changeSummary: string | null = null) {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const invalidate = vi.spyOn(client, "invalidateQueries");
   render(
     <QueryClientProvider client={client}>
-      <PublishButton documentId="doc-1" code="PR-KK-001" revision={{ id: "rev-1", revisionNo, status: "DRAFT" }} />
+      <PublishButton documentId="doc-1" code="PR-KK-001" revision={{ id: "rev-1", revisionNo, status: "DRAFT", changeSummary }} />
     </QueryClientProvider>,
   );
   return { invalidate };
@@ -109,6 +109,46 @@ describe("PublishButton", () => {
       await confirm();
 
       await waitFor(() => expect(publishRevision).toHaveBeenCalledWith("rev-1", "Madde 3 güncellendi"));
+    });
+
+    it("start with what the author wrote when the revision was started", async () => {
+      renderButton(2, "Madde 4 eklendi");
+
+      await openDialog();
+
+      expect(within(dialog()).getByLabelText(t.changeSummary)).toHaveValue("Madde 4 eklendi");
+    });
+
+    it("publish with that text as it is, without typing anything", async () => {
+      renderButton(2, "Madde 4 eklendi");
+      await openDialog();
+
+      await confirm();
+
+      await waitFor(() => expect(publishRevision).toHaveBeenCalledWith("rev-1", "Madde 4 eklendi"));
+    });
+
+    it("let the publisher correct the text", async () => {
+      renderButton(2, "Madde 4 eklendi");
+      await openDialog();
+      const field = within(dialog()).getByLabelText(t.changeSummary);
+      await userEvent.clear(field);
+      await userEvent.type(field, "Madde 4 ve 5 eklendi");
+
+      await confirm();
+
+      await waitFor(() => expect(publishRevision).toHaveBeenCalledWith("rev-1", "Madde 4 ve 5 eklendi"));
+    });
+
+    it("still require a text when the publisher clears the prefilled one", async () => {
+      renderButton(2, "Madde 4 eklendi");
+      await openDialog();
+      await userEvent.clear(within(dialog()).getByLabelText(t.changeSummary));
+
+      await confirm();
+
+      expect(await within(dialog()).findByRole("alert")).toHaveTextContent(t.changeSummaryRequired);
+      expect(publishRevision).not.toHaveBeenCalled();
     });
   });
 

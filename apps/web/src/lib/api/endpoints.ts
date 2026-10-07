@@ -108,6 +108,13 @@ export function getDocumentAuditLogs(documentId: string, query: AuditLogQuery): 
   return apiFetch<AuditLogPage>(`/documents/${encodeURIComponent(documentId)}/audit-logs${auditQueryString(query)}`);
 }
 
+export function startRevision(documentId: string, changeSummary: string): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/documents/${encodeURIComponent(documentId)}/revisions`, {
+    method: "POST",
+    body: JSON.stringify({ changeSummary }),
+  });
+}
+
 export function publishRevision(revisionId: string, changeSummary?: string): Promise<DocumentDetailDto> {
   return apiFetch<DocumentDetailDto>(`/revisions/${encodeURIComponent(revisionId)}/publish`, {
     method: "POST",

@@ -93,6 +93,11 @@ describe("describeEntry", () => {
     expect(describe_("DOCUMENT_CREATED", { source: "UPLOAD" })).toBe(d.sourceUpload);
   });
 
+  it("says which revision a new one was started from, and what is going to change", () => {
+    expect(describe_("REVISION_STARTED", { sourceRevisionNo: 2, changeSummary: "Madde 4 eklendi" })).toBe(`${d.startedFrom(2)} · Madde 4 eklendi`);
+    expect(describe_("REVISION_STARTED", null)).toBe("");
+  });
+
   it("tells a manual save from the save at the end of a session, with the size", () => {
     expect(describe_("REVISION_SAVED", { forceSave: true, fileSize: 24576 })).toBe(`${d.savedManually} · 24 KB`);
     expect(describe_("REVISION_SAVED", { forceSave: false, fileSize: 2048 })).toBe(`${d.savedOnClose} · 2 KB`);

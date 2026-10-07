@@ -36,6 +36,12 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
     case "DOCUMENT_CREATED":
       parts.push(text(metadata, "source") === "UPLOAD" ? t.details.sourceUpload : t.details.sourceTemplate);
       break;
+    case "REVISION_STARTED": {
+      const source = number(metadata, "sourceRevisionNo");
+      parts.push(source !== null ? t.details.startedFrom(source) : null);
+      parts.push(text(metadata, "changeSummary"));
+      break;
+    }
     case "REVISION_SAVED":
       parts.push(metadata?.forceSave === true ? t.details.savedManually : t.details.savedOnClose);
       parts.push(formatFileSize(number(metadata, "fileSize")));

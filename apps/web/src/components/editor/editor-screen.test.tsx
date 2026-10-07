@@ -34,7 +34,7 @@ function documentDetail(overrides: Partial<DocumentDetailDto> = {}): DocumentDet
     status: "DRAFT",
     canEdit: true,
     revisionNo: null,
-    openRevision: { id: REVISION_ID, revisionNo: 0, status: "DRAFT" },
+    openRevision: { id: REVISION_ID, revisionNo: 0, status: "DRAFT", changeSummary: null },
     ...overrides,
   });
 }
