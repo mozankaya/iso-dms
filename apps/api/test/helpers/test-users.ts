@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import * as argon2 from 'argon2';
 import type { PrismaClient, User } from '../../src/generated/prisma/client';
 import type { UserRole } from '../../src/generated/prisma/enums';
+import { deleteAuditLogs } from './audit-cleanup';
 
 export const TEST_PASSWORD = 'Test-Password-1';
 
@@ -32,9 +33,11 @@ export async function createTestUser(
 export async function deleteTestUsers(prisma: PrismaClient, users: User[]): Promise<void> {
   const ids = users.map((user) => user.id);
   await prisma.refreshToken.deleteMany({ where: { userId: { in: ids } } });
-  await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } });
-  await prisma.auditLog.deleteMany({
-    where: { action: 'USER_LOGIN_FAILED', entityId: 'unknown', metadata: { path: ['email'], string_contains: '@auth-test.local' } },
+  await deleteAuditLogs(prisma, { userId: { in: ids } });
+  await deleteAuditLogs(prisma, {
+    action: 'USER_LOGIN_FAILED',
+    entityId: 'unknown',
+    metadata: { path: ['email'], string_contains: '@auth-test.local' },
   });
   await prisma.user.deleteMany({ where: { id: { in: ids } } });
 }
