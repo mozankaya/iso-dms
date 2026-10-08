@@ -15,6 +15,7 @@
     "pretest": "pnpm --filter @iso-dms/shared build",
     "prebuild": "pnpm --filter @iso-dms/shared build",
     "pdf:backfill": "tsx prisma/backfill-pdfs.ts",
+    "search:backfill": "tsx prisma/backfill-search.ts",
     "seed:demo": "tsx prisma/seed-demo.ts"
   },
   "dependencies": {

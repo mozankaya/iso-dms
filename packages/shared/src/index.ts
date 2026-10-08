@@ -10,3 +10,4 @@ export * from './notifications';
 export * from './review';
 export * from './document-fields';
 export * from './comparison';
+export * from './search';

@@ -63,6 +63,12 @@ enum EmailStatus {
   SKIPPED
 }
 
+/// INDEXED: the text of the revision is searchable; SKIPPED: it cannot be (file missing, unreadable or too large)
+enum SearchIndexStatus {
+  INDEXED
+  SKIPPED
+}
+
 enum PdfStatus {
   NONE
   PENDING
@@ -89,6 +95,7 @@ model Organization {
   templates        Template[]
   documents        Document[]
   revisions        Revision[]
+  revisionTexts    RevisionText[]
   documentRequests DocumentRequest[]
   approvalSteps    ApprovalStep[]
   feedbacks        Feedback[]
@@ -267,6 +274,7 @@ model Revision {
 
   currentOf Document?         @relation("CurrentRevision")
   requests  DocumentRequest[]
+  text      RevisionText?
 
   @@unique([documentId, revisionNo])
   @@index([organizationId, documentId])
@@ -312,6 +320,26 @@ model ApprovalStep {
 
   @@unique([requestId, stepOrder])
   @@index([organizationId, approverRole, decision])
+}
+
+/// The text of a revision in force, for full text search (PROJECT.md 6.16). Derived data, not a record: it is
+/// rebuilt from the file, and only the revision in force of a document keeps a row.
+model RevisionText {
+  revisionId     String            @id
+  organizationId String
+  documentId     String
+  status         SearchIndexStatus
+  /// The text as people read it (paragraphs separated by line breaks, NFC); snippets are cut from it
+  content        String
+  /// Built from `content` with every letter folded to ASCII and punctuation turned into spaces (search-text.ts)
+  searchVector   Unsupported("tsvector")?
+  indexedAt      DateTime          @default(now())
+
+  revision     Revision     @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, documentId])
+  @@index([searchVector], type: Gin)
 }
 
 /// A message to one user: shown in the application and, when mail is set up, sent by e-mail too.

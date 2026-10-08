@@ -7,6 +7,7 @@ import { approvalDenial } from '../documents/document-access.policy';
 import { DocumentsService } from '../documents/documents.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PdfQueueService } from '../pdf/pdf-queue.service';
+import { SearchIndexService } from '../search/search-index.service';
 import { RevisionPublicationService } from '../revisions/revision-publication.service';
 import { ApprovalNotifier } from './approval-notifier.service';
 import { DocumentWithdrawalService } from './document-withdrawal.service';
@@ -26,6 +27,7 @@ export class ApprovalDecisionService {
     private readonly withdrawal: DocumentWithdrawalService,
     private readonly documents: DocumentsService,
     private readonly pdfQueue: PdfQueueService,
+    private readonly searchIndex: SearchIndexService,
     private readonly notifier: ApprovalNotifier,
     private readonly notifications: NotificationsService,
   ) {}
@@ -177,7 +179,11 @@ export class ApprovalDecisionService {
     await this.notifications.dispatch(notified);
 
     // After the commit, so the worker finds the revision published. Best effort: the sweep covers a lost job.
-    if (publishedRevisionId) await this.pdfQueue.enqueue(publishedRevisionId);
+    if (publishedRevisionId) {
+      await this.pdfQueue.enqueue(publishedRevisionId);
+      // Also best effort: the sweep indexes whatever is missing
+      await this.searchIndex.indexSafely(publishedRevisionId);
+    }
 
     return this.documents.findOne(user, documentId);
   }
