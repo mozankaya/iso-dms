@@ -1,9 +1,14 @@
 packages:
   - "apps/*"
   - "packages/*"
-onlyBuiltDependencies:
-  - argon2
-  - esbuild
-  - prisma
-  - "@prisma/client"
-  - "@prisma/engines"
+# Which dependencies may run install scripts. The first five need their native part (database client, password
+# hashing, bundler); the others are optional speed-ups or local tools with a JavaScript fallback. Every one is named
+# so that a clean install (CI, Docker) does not stop at "ignored build scripts".
+allowBuilds:
+  argon2: true
+  esbuild: true
+  prisma: true
+  "@prisma/engines": true
+  "@parcel/watcher": false
+  msgpackr-extract: false
+  unrs-resolver: false

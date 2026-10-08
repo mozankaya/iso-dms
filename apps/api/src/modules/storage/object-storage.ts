@@ -51,6 +51,11 @@ export class ObjectStorage {
     });
   }
 
+  /** Throws when the storage cannot be reached or the bucket is gone (health check). */
+  async ping(): Promise<void> {
+    await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+  }
+
   /** Creates the bucket when it does not exist yet. Safe to call repeatedly. */
   ensureBucket(): Promise<void> {
     this.bucketReady ??= (async () => {

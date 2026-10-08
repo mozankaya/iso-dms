@@ -48,14 +48,22 @@ async function main() {
       where: { organizationId_email: { organizationId, email: adminEmail } },
     });
     if (!existingAdmin) {
+      const production = process.env.NODE_ENV === 'production';
+      const adminPassword = requireEnv('SEED_ADMIN_PASSWORD');
+      // The example value is public: an installation that kept it would have a known administrator password
+      if (production && (adminPassword === 'ChangeMe123!' || adminPassword.length < 12)) {
+        throw new Error('SEED_ADMIN_PASSWORD must be changed (at least 12 characters, not the example) before seeding in production');
+      }
       await prisma.user.create({
         data: {
           organizationId,
           departmentId: departments[0].id,
           email: adminEmail,
           fullName: requireEnv('SEED_ADMIN_FULL_NAME'),
-          passwordHash: await argon2.hash(requireEnv('SEED_ADMIN_PASSWORD')),
+          passwordHash: await argon2.hash(adminPassword),
           role: 'ADMIN',
+          // In production the first login has to choose a password of the administrator's own
+          mustChangePassword: production,
         },
       });
     }
