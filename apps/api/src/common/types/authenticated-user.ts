@@ -7,6 +7,8 @@ export interface AccessTokenPayload {
   organizationId: string;
   role: UserRole;
   departmentId: string | null;
+  /** Only present while the user still has to replace a temporary password */
+  mustChangePassword?: boolean;
 }
 
 export interface AuthenticatedUser {
@@ -14,6 +16,7 @@ export interface AuthenticatedUser {
   organizationId: string;
   role: UserRole;
   departmentId: string | null;
+  mustChangePassword?: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {

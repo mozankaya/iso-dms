@@ -41,6 +41,7 @@ function user(overrides: Partial<SessionUserDto> = {}): SessionUserDto {
     email: "a@b.c",
     fullName: "Test",
     role: "ADMIN",
+    mustChangePassword: false,
     ...overrides,
   };
 }

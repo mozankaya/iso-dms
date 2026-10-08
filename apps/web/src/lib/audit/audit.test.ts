@@ -184,4 +184,19 @@ describe("describeEntry", () => {
     expect(describe_("DEPARTMENT_UPDATED", { code: "KK" })).toBe("KK");
     expect(describe_("DEPARTMENT_UPDATED", null)).toBe("");
   });
+
+  it("describes the user actions without ever needing a password", () => {
+    expect(describe_("USER_CREATED", { email: "a@b.co", role: "EDITOR", departmentCode: "KK", passwordGenerated: true })).toBe(
+      "a@b.co · Editör · KK · Rastgele şifre",
+    );
+    expect(describe_("USER_CREATED", { email: "a@b.co", role: "READER", departmentCode: null, passwordGenerated: false })).toBe(
+      "a@b.co · Okuyucu · Yöneticinin belirlediği şifre",
+    );
+    expect(describe_("USER_UPDATED", { email: "a@b.co", changes: { role: { from: "READER", to: "EDITOR" }, isActive: { from: true, to: false } } })).toBe(
+      "a@b.co · Rol · Kullanımdan kaldırıldı",
+    );
+    expect(describe_("USER_PASSWORD_RESET", { email: "a@b.co", passwordGenerated: true })).toBe("a@b.co · Rastgele şifre");
+    expect(describe_("USER_PASSWORD_CHANGED", { wasTemporary: true })).toBe("Geçici şifre değiştirildi");
+    expect(describe_("USER_PASSWORD_CHANGED", { wasTemporary: false })).toBe("");
+  });
 });

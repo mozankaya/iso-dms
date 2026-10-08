@@ -14,6 +14,11 @@ function number(metadata: Record<string, unknown> | null, key: string): number |
   return typeof value === "number" ? value : null;
 }
 
+function userRole(role: string | null): string | null {
+  if (!role) return null;
+  return role in tr.admin.users.roles ? tr.admin.users.roles[role as keyof typeof tr.admin.users.roles] : role;
+}
+
 function reason(code: string | null): string | null {
   if (!code) return null;
   return code in t.details.reasons ? t.details.reasons[code as keyof typeof t.details.reasons] : code;
@@ -104,6 +109,31 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
       }
       break;
     }
+    case "USER_CREATED":
+      parts.push(text(metadata, "email"));
+      parts.push(userRole(text(metadata, "role")));
+      parts.push(text(metadata, "departmentCode"));
+      parts.push(metadata?.passwordGenerated === true ? t.details.passwordGenerated : t.details.passwordChosen);
+      break;
+    case "USER_UPDATED": {
+      parts.push(text(metadata, "email"));
+      const changes = changesOf(metadata);
+      for (const key of Object.keys(changes)) {
+        if (key === "isActive") {
+          parts.push(changes[key].to === true ? t.details.activated : t.details.deactivated);
+        } else {
+          parts.push(t.details.changedFields[key] ?? key);
+        }
+      }
+      break;
+    }
+    case "USER_PASSWORD_RESET":
+      parts.push(text(metadata, "email"));
+      parts.push(metadata?.passwordGenerated === true ? t.details.passwordGenerated : t.details.passwordChosen);
+      break;
+    case "USER_PASSWORD_CHANGED":
+      parts.push(metadata?.wasTemporary === true ? t.details.temporaryChanged : null);
+      break;
     case "REFRESH_TOKEN_REUSE_DETECTED":
       parts.push(t.details.sessionsClosed);
       break;

@@ -19,6 +19,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { EditorModule } from './modules/editor/editor.module';
 import { RevisionsModule } from './modules/revisions/revisions.module';
 import { TemplatesModule } from './modules/templates/templates.module';
+import { UsersModule } from './modules/users/users.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -41,6 +42,7 @@ import { PrismaModule } from './prisma/prisma.module';
     DepartmentsModule,
     DocumentsModule,
     TemplatesModule,
+    UsersModule,
     EditorModule,
     RevisionsModule,
     ApprovalsModule,

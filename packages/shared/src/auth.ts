@@ -8,6 +8,8 @@ export interface SessionUserDto {
   email: string;
   fullName: string;
   role: UserRole;
+  /** The user has to change the temporary password before anything else */
+  mustChangePassword: boolean;
 }
 
 export interface AuthResponseDto {

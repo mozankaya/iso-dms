@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -16,6 +16,7 @@ export interface SessionUser {
   email: string;
   fullName: string;
   role: User['role'];
+  mustChangePassword: boolean;
 }
 
 export interface AuthResult {
@@ -40,6 +41,7 @@ function toSessionUser(user: User): SessionUser {
     email: user.email,
     fullName: user.fullName,
     role: user.role,
+    mustChangePassword: user.mustChangePassword,
   };
 }
 
@@ -187,12 +189,56 @@ export class AuthService {
     return toSessionUser(user);
   }
 
+  /**
+   * The user replaces their password (a temporary one, or any time). Every other session is closed: whoever
+   * held the old password must not stay signed in. The answer is a fresh session, like a sign-in.
+   */
+  async changePassword(
+    userId: string,
+    organizationId: string,
+    currentPassword: string,
+    newPassword: string,
+    ipAddress: string | null,
+  ): Promise<AuthResult> {
+    const user = await this.prisma.user.findFirst({ where: { id: userId, organizationId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'Authentication required' });
+    }
+    if (!(await argon2.verify(user.passwordHash, currentPassword))) {
+      throw new BadRequestException({ code: 'CURRENT_PASSWORD_INCORRECT', message: 'The current password is not correct' });
+    }
+    if (currentPassword === newPassword) {
+      throw new BadRequestException({ code: 'PASSWORD_UNCHANGED', message: 'The new password has to differ from the current one' });
+    }
+
+    const passwordHash = await argon2.hash(newPassword);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.user.update({ where: { id: user.id }, data: { passwordHash, mustChangePassword: false } });
+      await tx.refreshToken.updateMany({ where: { organizationId, userId, revokedAt: null }, data: { revokedAt: new Date() } });
+      await this.auditLogs.log(
+        {
+          organizationId,
+          userId,
+          action: 'USER_PASSWORD_CHANGED',
+          entityType: 'User',
+          entityId: userId,
+          metadata: { wasTemporary: user.mustChangePassword },
+          ipAddress,
+        },
+        tx,
+      );
+      return row;
+    });
+    return this.issueTokens(updated);
+  }
+
   private async issueTokens(user: User): Promise<AuthResult> {
     const payload: AccessTokenPayload = {
       sub: user.id,
       organizationId: user.organizationId,
       role: user.role,
       departmentId: user.departmentId,
+      ...(user.mustChangePassword && { mustChangePassword: true }),
     };
     const accessToken = await this.jwt.signAsync(payload, {
       secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),

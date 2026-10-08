@@ -21,6 +21,8 @@ interface AuthContextValue {
   user: SessionUserDto | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Replaces the password; the answer is a fresh session, since every other one is closed */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -66,6 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("authenticated");
   }, []);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const session = await endpoints.changePassword({ currentPassword, newPassword });
+    setAccessToken(session.accessToken);
+    setUser(session.user);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await endpoints.logout();
@@ -75,8 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearSession]);
 
   const value = useMemo(
-    () => ({ status, user, login, logout }),
-    [status, user, login, logout],
+    () => ({ status, user, login, logout, changePassword }),
+    [status, user, login, logout, changePassword],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

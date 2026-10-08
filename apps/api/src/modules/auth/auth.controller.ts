@@ -1,10 +1,12 @@
-import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Patch, Post, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
+import { AllowPasswordChange } from '../../common/decorators/allow-password-change.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { AuthService, AuthResult } from './auth.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 
 export const REFRESH_COOKIE_NAME = 'refresh_token';
@@ -47,6 +49,23 @@ export class AuthController {
     res.clearCookie(REFRESH_COOKIE_NAME, this.cookieOptions());
   }
 
+  /** Guessing the current password is rate limited like signing in. */
+  @AllowPasswordChange()
+  @Throttle({ default: { limit: LOGIN_RATE_LIMIT, ttl: 60_000 } })
+  @HttpCode(200)
+  @Patch('password')
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.changePassword(user.id, user.organizationId, dto.currentPassword, dto.newPassword, req.ip ?? null);
+    this.setRefreshCookie(res, result);
+    return { accessToken: result.accessToken, user: result.user };
+  }
+
+  @AllowPasswordChange()
   @Get('me')
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.me(user.id, user.organizationId);

@@ -1,6 +1,7 @@
 import type {
   AdminCategoryDto,
   AdminDepartmentDto,
+  AdminUserDto,
   AuditLogPage,
   AuditLogQuery,
   AuthResponseDto,
@@ -8,6 +9,7 @@ import type {
   CreateCategoryRequest,
   CreateDepartmentRequest,
   CreateDocumentRequest,
+  CreateUserRequest,
   DashboardStatsDto,
   DepartmentDto,
   DocumentDetailDto,
@@ -27,6 +29,11 @@ import type {
   TemplateDto,
   UpdateCategoryRequest,
   UpdateDepartmentRequest,
+  UpdateUserRequest,
+  UserWithPasswordDto,
+  AdminUserListQuery,
+  ResetPasswordRequest,
+  ChangePasswordRequest,
 } from "@iso-dms/shared";
 import { DEFAULT_PAGE_SIZE } from "@iso-dms/shared";
 import { apiFetch, apiFetchPublic } from "./client";
@@ -220,4 +227,29 @@ export function createCategory(request: CreateCategoryRequest): Promise<AdminCat
 
 export function updateCategory(id: string, request: UpdateCategoryRequest): Promise<AdminCategoryDto> {
   return apiFetch<AdminCategoryDto>(`/categories/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(request) });
+}
+
+export function getAdminUsers(query: AdminUserListQuery): Promise<PaginatedDto<AdminUserDto>> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  const text = search.toString();
+  return apiFetch<PaginatedDto<AdminUserDto>>(`/users${text ? `?${text}` : ""}`);
+}
+
+export function createUser(request: CreateUserRequest): Promise<UserWithPasswordDto> {
+  return apiFetch<UserWithPasswordDto>("/users", { method: "POST", body: JSON.stringify(request) });
+}
+
+export function updateUser(id: string, request: UpdateUserRequest): Promise<AdminUserDto> {
+  return apiFetch<AdminUserDto>(`/users/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(request) });
+}
+
+export function resetUserPassword(id: string, request: ResetPasswordRequest): Promise<UserWithPasswordDto> {
+  return apiFetch<UserWithPasswordDto>(`/users/${encodeURIComponent(id)}/reset-password`, { method: "POST", body: JSON.stringify(request) });
+}
+
+export function changePassword(request: ChangePasswordRequest): Promise<AuthResponseDto> {
+  return apiFetch<AuthResponseDto>("/auth/password", { method: "PATCH", body: JSON.stringify(request) });
 }

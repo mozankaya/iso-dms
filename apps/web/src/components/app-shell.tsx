@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ClipboardCheck, FilePlus2, FolderCog, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
+import { Building2, ClipboardCheck, KeyRound, Users, FilePlus2, FolderCog, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -43,24 +43,26 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { status, user, logout } = useRequireAuth();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Until the temporary password is replaced the API refuses everything; the hook is sending the user away
+  const mustChange = user?.mustChangePassword === true;
 
   const categories = useQuery({
     queryKey: ["categories"],
     queryFn: getCategories,
-    enabled: status === "authenticated",
+    enabled: status === "authenticated" && !mustChange,
   });
 
   // The number of steps waiting for the user, for the badge of "Onaylarım"
   const waiting = useQuery({
     queryKey: ["approvals-pending", "badge"],
     queryFn: () => getPendingApprovals(1),
-    enabled: status === "authenticated" && canDecideApprovals(user?.role),
+    enabled: status === "authenticated" && !mustChange && canDecideApprovals(user?.role),
     refetchInterval: 60_000,
   });
 
   const closeMenu = () => setMenuOpen(false);
 
-  if (status !== "authenticated") {
+  if (status !== "authenticated" || mustChange) {
     return (
       <div className="flex flex-1 items-center justify-center text-muted" role="status">
         {tr.common.loading}
@@ -156,6 +158,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
               {canAdminister(user?.role) && (
                 <>
+                  <NavLink href="/admin/users" active={pathname === "/admin/users"} onNavigate={closeMenu}>
+                    <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {tr.nav.users}
+                  </NavLink>
                   <NavLink href="/admin/departments" active={pathname === "/admin/departments"} onNavigate={closeMenu}>
                     <Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />
                     {tr.nav.departments}
@@ -178,6 +184,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Button>
           <div className="ml-auto flex items-center gap-3">
             <span className="text-sm text-muted">{user?.fullName}</span>
+            <Link href="/change-password" className="inline-flex h-8 items-center rounded-md px-3 text-sm font-medium hover:bg-accent">
+              <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
+              {tr.auth.changePassword.link}
+            </Link>
             <Button variant="outline" size="sm" onClick={() => logout()}>
               <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
               {tr.auth.logout}
