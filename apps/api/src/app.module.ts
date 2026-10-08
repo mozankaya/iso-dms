@@ -21,6 +21,8 @@ import { RevisionsModule } from './modules/revisions/revisions.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { UsersModule } from './modules/users/users.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { JobsModule } from './modules/jobs/jobs.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -36,6 +38,7 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     StorageModule,
     AuditLogsModule,
+    NotificationsModule,
     AuthModule,
     CategoriesModule,
     DashboardModule,

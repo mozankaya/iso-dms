@@ -37,6 +37,7 @@
     "dotenv": "^18.0.5",
     "ioredis": "^6.0.0",
     "jszip": "^3.10.2",
+    "nodemailer": "^10.0.16",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
@@ -49,6 +50,7 @@
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.3.0",
     "@types/node": "^26.6.4",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",
     "jest": "^30.5.2",

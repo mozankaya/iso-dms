@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { DocumentsModule } from '../documents/documents.module';
 import { EditorModule } from '../editor/editor.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PdfModule } from '../pdf/pdf.module';
 import { RevisionsModule } from '../revisions/revisions.module';
+import { ApprovalNotifier } from './approval-notifier.service';
 import { ApprovalDecisionService } from './approval-decision.service';
 import { ApprovalSubmissionService } from './approval-submission.service';
 import { DocumentWithdrawalService } from './document-withdrawal.service';
@@ -12,9 +14,9 @@ import { ApprovalsController } from './approvals.controller';
 import { ApprovalsService } from './approvals.service';
 
 @Module({
-  imports: [AuditLogsModule, DocumentsModule, EditorModule, PdfModule, RevisionsModule],
+  imports: [AuditLogsModule, DocumentsModule, EditorModule, NotificationsModule, PdfModule, RevisionsModule],
   controllers: [ApprovalsController],
-  providers: [ApprovalSubmissionService, ApprovalDecisionService, ApprovalsService, DocumentWithdrawalService, WithdrawalRequestService],
+  providers: [ApprovalNotifier, ApprovalSubmissionService, ApprovalDecisionService, ApprovalsService, DocumentWithdrawalService, WithdrawalRequestService],
   exports: [ApprovalsService],
 })
 export class ApprovalsModule {}

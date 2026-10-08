@@ -49,6 +49,20 @@ enum RequestStatus {
   CANCELLED
 }
 
+enum NotificationType {
+  APPROVAL_STEP_WAITING
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+  REVIEW_DUE
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
 enum PdfStatus {
   NONE
   PENDING
@@ -80,6 +94,7 @@ model Organization {
   feedbacks        Feedback[]
   auditLogs        AuditLog[]
   refreshTokens    RefreshToken[]
+  notifications    Notification[]
 }
 
 model Department {
@@ -128,6 +143,7 @@ model User {
   resolvedFeedbacks Feedback[]        @relation("FeedbackResolver")
   auditLogs         AuditLog[]
   refreshTokens     RefreshToken[]
+  notifications     Notification[]
 
   @@unique([organizationId, email])
   @@index([organizationId, departmentId])
@@ -290,6 +306,33 @@ model ApprovalStep {
 
   @@unique([requestId, stepOrder])
   @@index([organizationId, approverRole, decision])
+}
+
+/// A message to one user: shown in the application and, when mail is set up, sent by e-mail too.
+model Notification {
+  id             String           @id @default(uuid())
+  organizationId String
+  userId         String
+  type           NotificationType
+  title          String
+  body           String
+  /// Path in the web application the message leads to
+  link           String
+  /// Makes sending the same message twice impossible (a reminder for the same document and day, for instance)
+  dedupeKey      String?
+  readAt         DateTime?
+  emailStatus    EmailStatus      @default(PENDING)
+  emailedAt      DateTime?
+  createdAt      DateTime         @default(now())
+
+  // Unlike records, messages go with the user or organization they belong to (nothing deletes those in the
+  // application; this only keeps test and maintenance clean-up simple)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, createdAt])
+  @@index([organizationId])
 }
 
 model Feedback {

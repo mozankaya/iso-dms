@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Building2, FileStack, ClipboardCheck, KeyRound, Users, FilePlus2, FolderCog, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
+import { Bell, Building2, FileStack, ClipboardCheck, KeyRound, Users, FilePlus2, FolderCog, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
-import { getCategories, getPendingApprovals } from "@/lib/api/endpoints";
+import { getCategories, getPendingApprovals, getUnreadNotificationCount } from "@/lib/api/endpoints";
 import { canAdminister, canDecideApprovals, canReadFeedback, canViewAuditLog, canViewWithdrawnList } from "@/lib/auth/permissions";
 import { useRequireAuth } from "@/lib/auth/use-require-auth";
 import { tr } from "@/lib/i18n/tr";
@@ -59,6 +59,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     enabled: status === "authenticated" && !mustChange && canDecideApprovals(user?.role),
     refetchInterval: 60_000,
   });
+
+  // Unread messages, for the bell in the header
+  const unread = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: getUnreadNotificationCount,
+    enabled: status === "authenticated" && !mustChange,
+    refetchInterval: 60_000,
+  });
+  const unreadCount = unread.data?.count ?? 0;
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -187,6 +196,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5" aria-hidden="true" />
           </Button>
           <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/notifications"
+              aria-label={unreadCount > 0 ? tr.notifications.unreadCount(unreadCount) : tr.notifications.bell}
+              className="relative inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent"
+            >
+              <Bell className="h-4 w-4" aria-hidden="true" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] font-medium text-primary-foreground">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
             <span className="text-sm text-muted">{user?.fullName}</span>
             <Link href="/change-password" className="inline-flex h-8 items-center rounded-md px-3 text-sm font-medium hover:bg-accent">
               <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />

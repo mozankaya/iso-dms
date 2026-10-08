@@ -6,6 +6,8 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { canSubmitRevision, canViewRevision, canWriteInDepartment } from '../documents/document-access.policy';
 import { DocumentsService } from '../documents/documents.service';
 import { editSessionActive, EditSessionGate } from '../editor/edit-session-gate.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ApprovalNotifier } from './approval-notifier.service';
 import { APPROVAL_STEPS } from './approval-steps';
 
 const notSubmittable = () =>
@@ -25,6 +27,8 @@ export class ApprovalSubmissionService {
     private readonly editSessions: EditSessionGate,
     private readonly auditLogs: AuditLogsService,
     private readonly documents: DocumentsService,
+    private readonly notifier: ApprovalNotifier,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async submit(user: AuthenticatedUser, revisionId: string, ipAddress: string | null): Promise<DocumentDetailDto> {
@@ -47,6 +51,7 @@ export class ApprovalSubmissionService {
     // transaction because it calls another system.
     await this.editSessions.assertIdle(revision.id);
 
+    let notified: string[] = [];
     await this.prisma.$transaction(async (tx) => {
       // Always the document first, then the revision, so concurrent writers can never wait for each other
       await tx.$queryRaw`SELECT id FROM "Document" WHERE id = ${revision.documentId} FOR UPDATE`;
@@ -93,7 +98,17 @@ export class ApprovalSubmissionService {
         },
         tx,
       );
+
+      // The first step is up: the approvers of the department are told (not the ones who prepared or sent it)
+      notified = await this.notifier.stepWaiting(tx, {
+        organizationId: user.organizationId,
+        document,
+        kind: type,
+        stepOrder: 1,
+        excludeUserIds: [user.id, current.preparedById],
+      });
     });
+    await this.notifications.dispatch(notified);
 
     return this.documents.findOne(user, revision.documentId);
   }

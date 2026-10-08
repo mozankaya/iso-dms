@@ -5,6 +5,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { canRequestWithdrawal, canWriteInDepartment, visibleDocumentWhere } from '../documents/document-access.policy';
 import { DocumentsService } from '../documents/documents.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ApprovalNotifier } from './approval-notifier.service';
 import { APPROVAL_STEPS } from './approval-steps';
 import type { RequestWithdrawalDto } from './dto/request-withdrawal.dto';
 
@@ -28,6 +30,8 @@ export class WithdrawalRequestService {
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
     private readonly documents: DocumentsService,
+    private readonly notifier: ApprovalNotifier,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async request(user: AuthenticatedUser, documentId: string, dto: RequestWithdrawalDto, ipAddress: string | null): Promise<DocumentDetailDto> {
@@ -42,6 +46,7 @@ export class WithdrawalRequestService {
     const reason = dto.reason?.trim();
     if (!reason) throw new BadRequestException({ code: 'REASON_REQUIRED', message: 'A reason is required' });
 
+    let notified: string[] = [];
     await this.prisma.$transaction(async (tx) => {
       // The document first, like every writer: concurrent requests, revisions and decisions take turns
       await tx.$queryRaw`SELECT id FROM "Document" WHERE id = ${documentId} FOR UPDATE`;
@@ -50,6 +55,7 @@ export class WithdrawalRequestService {
         select: {
           id: true,
           code: true,
+          title: true,
           status: true,
           departmentId: true,
           currentRevisionId: true,
@@ -95,7 +101,16 @@ export class WithdrawalRequestService {
         },
         tx,
       );
+
+      notified = await this.notifier.stepWaiting(tx, {
+        organizationId: user.organizationId,
+        document,
+        kind: 'WITHDRAWAL',
+        stepOrder: 1,
+        excludeUserIds: [user.id],
+      });
     });
+    await this.notifications.dispatch(notified);
 
     return this.documents.findOne(user, documentId);
   }

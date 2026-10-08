@@ -7,5 +7,8 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env'), quiet: true });
 process.env.S3_BUCKET = process.env.S3_TEST_BUCKET ?? 'documents-test';
 
 // Tests run without the PDF queue (no Redis needed); the specs about PDF copies switch it on for themselves
-process.env.PDF_WORKER_ENABLED = 'false';
+process.env.JOBS_ENABLED = 'false';
 process.env.REDIS_QUEUE_PREFIX = 'iso-dms-test';
+// Mail is kept in memory (MailService.outbox) instead of being sent
+process.env.MAIL_MODE = 'memory';
+delete process.env.SMTP_HOST;

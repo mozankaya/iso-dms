@@ -13,7 +13,7 @@ const SWEEP_INTERVAL_MS = 10 * 60 * 1000;
  * (at start-up and every few minutes) re-adds the ones that are missing; the job id is the revision id, which
  * makes adding the same revision twice harmless.
  *
- * Without the queue (PDF_WORKER_ENABLED=false) every method does nothing.
+ * Without the queue (JOBS_ENABLED=false) every method does nothing.
  */
 @Injectable()
 export class PdfQueueService implements OnApplicationBootstrap, OnModuleDestroy {

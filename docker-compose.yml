@@ -46,6 +46,14 @@ services:
       timeout: 5s
       retries: 10
 
+  # Catches the e-mail the application sends in development (SMTP :1025, inbox in the browser on :8025)
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
   onlyoffice:
     image: onlyoffice/documentserver
     restart: unless-stopped

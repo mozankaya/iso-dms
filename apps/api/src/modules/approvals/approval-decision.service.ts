@@ -5,8 +5,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { approvalDenial } from '../documents/document-access.policy';
 import { DocumentsService } from '../documents/documents.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PdfQueueService } from '../pdf/pdf-queue.service';
 import { RevisionPublicationService } from '../revisions/revision-publication.service';
+import { ApprovalNotifier } from './approval-notifier.service';
 import { DocumentWithdrawalService } from './document-withdrawal.service';
 import { APPROVAL_REQUEST_INCLUDE, isStepActive, requestAuthorId } from './approval-request.mapper';
 import type { DecideApprovalDto } from './dto/decide-approval.dto';
@@ -24,6 +26,8 @@ export class ApprovalDecisionService {
     private readonly withdrawal: DocumentWithdrawalService,
     private readonly documents: DocumentsService,
     private readonly pdfQueue: PdfQueueService,
+    private readonly notifier: ApprovalNotifier,
+    private readonly notifications: NotificationsService,
   ) {}
 
   approve(user: AuthenticatedUser, stepId: string, dto: DecideApprovalDto, ipAddress: string | null): Promise<DocumentDetailDto> {
@@ -75,6 +79,7 @@ export class ApprovalDecisionService {
 
     const documentId = step.request.document.id;
     let publishedRevisionId: string | null = null;
+    let notified: string[] = [];
     await this.prisma.$transaction(async (tx) => {
       // Always the document first, then the revision (like every other writer), so decisions on the same
       // document are taken one after the other
@@ -145,7 +150,31 @@ export class ApprovalDecisionService {
         await this.publication.publish(tx, { user, document, revision, ipAddress });
         publishedRevisionId = revision.id;
       }
+
+      // Whose turn it is, or how it ended, is told in the same transaction as the decision itself
+      const documentRef = { id: document.id, code: document.code, title: document.title, departmentId: document.departmentId };
+      if (decision === 'APPROVED' && !isFinal) {
+        notified = await this.notifier.stepWaiting(tx, {
+          organizationId: user.organizationId,
+          document: documentRef,
+          kind: request.type,
+          stepOrder: current.stepOrder + 1,
+          excludeUserIds: [request.requestedById, revision.preparedById, user.id],
+        });
+      } else {
+        notified = await this.notifier.decided(tx, {
+          organizationId: user.organizationId,
+          document: documentRef,
+          kind: request.type,
+          approved: decision === 'APPROVED',
+          comment,
+          // Who sent the request and, for a revision, who prepared it
+          recipientIds: withdrawal ? [request.requestedById] : [request.requestedById, revision.preparedById],
+          deciderId: user.id,
+        });
+      }
     });
+    await this.notifications.dispatch(notified);
 
     // After the commit, so the worker finds the revision published. Best effort: the sweep covers a lost job.
     if (publishedRevisionId) await this.pdfQueue.enqueue(publishedRevisionId);

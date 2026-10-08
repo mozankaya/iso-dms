@@ -1,6 +1,6 @@
 process.env.LOGIN_RATE_LIMIT = '1000';
 // The queue and its worker (they need Redis) exist only when this is not 'false'; read when the module is loaded
-process.env.PDF_WORKER_ENABLED = 'true';
+process.env.JOBS_ENABLED = 'true';
 
 import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -124,7 +124,8 @@ describe('the queue (needs Redis)', () => {
     expect(done).toMatchObject({ pdfStatus: 'READY', status: 'APPROVED' });
     expect(done.pdfStorageKey).toMatch(/\.pdf$/);
     expect(await storage.exists(done.pdfStorageKey!)).toBe(true);
-    expect(converter.requests).toHaveLength(1);
+    // Other waiting revisions in the database may be converted too (the sweep at start-up is not limited to this test)
+    expect(converter.requests.filter((request) => String(request.body.key).startsWith(`pdf-${revision.id}-`))).toHaveLength(1);
   });
 
   it('picks up a revision whose job was lost, when the queue is swept', async () => {

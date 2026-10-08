@@ -20,6 +20,8 @@ import type {
   FeedbackDto,
   FeedbackQuery,
   FileType,
+  NotificationDto,
+  NotificationListQuery,
   PaginatedDto,
   PdfStatus,
   PendingApprovalDto,
@@ -291,4 +293,25 @@ export const templateDownloadPath = (id: string) => `/templates/${encodeURICompo
 /** Asks for the PDF copy of a published revision again (quality managers and administrators). */
 export function requestRevisionPdf(revisionId: string): Promise<{ id: string; pdfStatus: PdfStatus }> {
   return apiFetch<{ id: string; pdfStatus: PdfStatus }>(`/revisions/${encodeURIComponent(revisionId)}/pdf`, { method: "POST" });
+}
+
+export function getNotifications(query: NotificationListQuery): Promise<PaginatedDto<NotificationDto>> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  const text = search.toString();
+  return apiFetch<PaginatedDto<NotificationDto>>(`/notifications${text ? `?${text}` : ""}`);
+}
+
+export function getUnreadNotificationCount(): Promise<{ count: number }> {
+  return apiFetch<{ count: number }>("/notifications/unread-count");
+}
+
+export function markNotificationRead(id: string): Promise<NotificationDto> {
+  return apiFetch<NotificationDto>(`/notifications/${encodeURIComponent(id)}/read`, { method: "POST" });
+}
+
+export function markAllNotificationsRead(): Promise<{ count: number }> {
+  return apiFetch<{ count: number }>("/notifications/read-all", { method: "POST" });
 }

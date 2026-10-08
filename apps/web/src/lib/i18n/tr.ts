@@ -140,6 +140,20 @@ export const tr = {
       fileEmpty: "Seçilen dosya boş",
     },
   },
+  notifications: {
+    title: "Bildirimler",
+    description: "Sizi bekleyen işler ve taleplerinizin sonuçları. E-posta ayarlıysa aynı mesajlar e-postayla da gelir.",
+    listLabel: "Bildirimler",
+    statusFilter: "Göster",
+    statuses: { all: "Tümü", unread: "Okunmamış" },
+    markAllRead: "Tümünü okundu say",
+    unread: "Okunmamış",
+    empty: "Henüz bildiriminiz yok.",
+    emptyUnread: "Okunmamış bildiriminiz yok.",
+    loadError: "Bildirimler yüklenemedi.",
+    bell: "Bildirimler",
+    unreadCount: (count: number) => `${count} okunmamış bildirim`,
+  },
   pdf: {
     download: "PDF",
     downloading: "İndiriliyor...",
@@ -711,6 +725,7 @@ export const tr = {
     categoriesAdmin: "Kategoriler",
     users: "Kullanıcılar",
     templates: "Şablonlar",
+    notifications: "Bildirimler",
   },
   errors: {
     INVALID_CREDENTIALS: "E-posta veya şifre hatalı.",

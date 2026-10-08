@@ -7,6 +7,7 @@ import { AppShell } from "./app-shell";
 let role = "READER";
 let pathname = "/";
 const getPendingApprovals = vi.fn();
+const getUnreadNotificationCount = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
@@ -24,6 +25,7 @@ vi.mock("@/lib/api/endpoints", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api/endpoints")>()),
   getCategories: () => Promise.resolve([]),
   getPendingApprovals: (page: number) => getPendingApprovals(page),
+  getUnreadNotificationCount: () => getUnreadNotificationCount(),
 }));
 
 function renderShell() {
@@ -42,6 +44,8 @@ beforeEach(() => {
   pathname = "/";
   getPendingApprovals.mockReset();
   getPendingApprovals.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
+  getUnreadNotificationCount.mockReset();
+  getUnreadNotificationCount.mockResolvedValue({ count: 0 });
 });
 
 describe("AppShell navigation", () => {
@@ -198,5 +202,29 @@ describe("AppShell administration", () => {
     expect(screen.queryByRole("link", { name: tr.nav.categoriesAdmin })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: tr.nav.users })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: tr.nav.templates })).not.toBeInTheDocument();
+  });
+});
+
+describe("AppShell notifications", () => {
+  it("links the bell to the notifications, without a number when nothing is unread", async () => {
+    renderShell();
+    const bell = screen.getByRole("link", { name: tr.notifications.bell });
+    expect(bell).toHaveAttribute("href", "/notifications");
+    await waitFor(() => expect(getUnreadNotificationCount).toHaveBeenCalled());
+    expect(bell).not.toHaveTextContent(/\d/);
+  });
+
+  it("shows how many are unread, for every role", async () => {
+    getUnreadNotificationCount.mockResolvedValue({ count: 3 });
+    renderShell();
+
+    const bell = await screen.findByRole("link", { name: tr.notifications.unreadCount(3) });
+    expect(bell).toHaveTextContent("3");
+  });
+
+  it("does not show a number above 99", async () => {
+    getUnreadNotificationCount.mockResolvedValue({ count: 250 });
+    renderShell();
+    expect(await screen.findByRole("link", { name: tr.notifications.unreadCount(250) })).toHaveTextContent("99+");
   });
 });
