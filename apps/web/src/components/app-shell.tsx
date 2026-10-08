@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { CategoryIcon } from "@/components/category-icon";
+import { HeaderSearch } from "@/components/search/header-search";
 import { Button } from "@/components/ui/button";
 import { getCategories, getPendingApprovals, getUnreadNotificationCount } from "@/lib/api/endpoints";
 import { canAdminister, canDecideApprovals, canReadFeedback, canViewAuditLog, canViewWithdrawnList } from "@/lib/auth/permissions";
@@ -201,6 +202,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMenuOpen(true)} aria-label={tr.common.menu}>
             <Menu className="h-5 w-5" aria-hidden="true" />
           </Button>
+          <HeaderSearch />
           <div className="ml-auto flex items-center gap-3">
             <Link
               href="/notifications"
@@ -214,14 +216,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </Link>
-            <span className="text-sm text-muted">{user?.fullName}</span>
-            <Link href="/change-password" className="inline-flex h-8 items-center rounded-md px-3 text-sm font-medium hover:bg-accent">
-              <KeyRound className="mr-2 h-4 w-4" aria-hidden="true" />
-              {tr.auth.changePassword.link}
+            <span className="hidden text-sm text-muted md:inline">{user?.fullName}</span>
+            <Link href="/change-password" aria-label={tr.auth.changePassword.link} className="inline-flex h-8 items-center rounded-md px-2 sm:px-3 text-sm font-medium hover:bg-accent">
+              <KeyRound className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+              <span className="hidden sm:inline">{tr.auth.changePassword.link}</span>
             </Link>
-            <Button variant="outline" size="sm" onClick={() => logout()}>
-              <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
-              {tr.auth.logout}
+            <Button variant="outline" size="sm" aria-label={tr.auth.logout} onClick={() => logout()}>
+              <LogOut className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+              <span className="hidden sm:inline">{tr.auth.logout}</span>
             </Button>
           </div>
         </header>

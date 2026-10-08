@@ -28,6 +28,8 @@ import type {
   PublicationListItemDto,
   PublicationListKind,
   PublicationListQuery,
+  SearchQuery,
+  SearchResultDto,
   RevisionComparisonDto,
   RevisionHistoryItemDto,
   SentFeedbackDto,
@@ -322,6 +324,14 @@ export function markNotificationRead(id: string): Promise<NotificationDto> {
 
 export function markAllNotificationsRead(): Promise<{ count: number }> {
   return apiFetch<{ count: number }>("/notifications/read-all", { method: "POST" });
+}
+
+export function searchDocuments(query: SearchQuery): Promise<PaginatedDto<SearchResultDto>> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  return apiFetch<PaginatedDto<SearchResultDto>>(`/search?${search.toString()}`);
 }
 
 export function getReviewDueList(query: ReviewDueQuery): Promise<PaginatedDto<ReviewDueItemDto>> {
