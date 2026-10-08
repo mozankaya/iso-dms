@@ -34,6 +34,7 @@ export function documentDetail(overrides: Partial<DocumentDetailDto> = {}): Docu
     canCancelRevision: false,
     approval: null,
     canStartRevision: false,
+    canRequestWithdrawal: false,
     ...overrides,
   };
 }

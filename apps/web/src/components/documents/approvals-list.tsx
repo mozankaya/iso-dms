@@ -21,6 +21,7 @@ function ItemActions({ item, onDecide }: { item: PendingApprovalDto; onDecide: (
     documentId: item.document.id,
     code: item.document.code,
     revisionNo: item.revision.revisionNo,
+    type: item.request.type,
   });
   const label = `${item.document.code} ${tr.approval.revision(item.revision.revisionNo)}`;
   return (
@@ -50,6 +51,12 @@ function DocumentCell({ item }: { item: PendingApprovalDto }) {
       </Link>
       <span className="block">{item.document.title}</span>
       <span className="block text-xs text-muted">{item.document.department.name}</span>
+      {item.request.reason && (
+        <span className="mt-1 block text-sm break-words">
+          <span className="text-muted">{item.request.type === "WITHDRAWAL" ? tr.approval.reasonLabel : tr.approval.summaryLabel}: </span>
+          {item.request.reason}
+        </span>
+      )}
     </span>
   );
 }

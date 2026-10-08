@@ -54,6 +54,8 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
       break;
     }
     case "REVISION_CANCELLED":
+    case "WITHDRAWAL_REQUESTED":
+    case "DOCUMENT_WITHDRAWN":
       parts.push(text(metadata, "reason"));
       break;
     case "REVISION_SAVED":

@@ -73,6 +73,28 @@ describe("DecisionDialog", () => {
     });
   });
 
+  describe("a withdrawal", () => {
+    it("is approved in the words of a withdrawal, with the same comment rules", async () => {
+      const { onClose } = renderDialog({ ...target("approve"), type: "WITHDRAWAL" });
+      expect(within(dialog()).getByText(t.approveWithdrawalConfirm("PR-KK-001"))).toBeInTheDocument();
+
+      await userEvent.click(within(dialog()).getByRole("button", { name: t.submitApprove }));
+
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(decideApproval).toHaveBeenCalledWith("step-1", "approve", undefined);
+    });
+
+    it("is refused in the words of a withdrawal, and needs a reason", async () => {
+      renderDialog({ ...target("reject"), type: "WITHDRAWAL" });
+      expect(within(dialog()).getByText(t.rejectWithdrawalConfirm("PR-KK-001"))).toBeInTheDocument();
+
+      await userEvent.click(within(dialog()).getByRole("button", { name: t.submitReject }));
+
+      expect(await within(dialog()).findByRole("alert")).toHaveTextContent(t.reasonRequired);
+      expect(decideApproval).not.toHaveBeenCalled();
+    });
+  });
+
   describe("rejecting", () => {
     it("says that the draft goes back and asks for a reason", () => {
       renderDialog(target("reject"));

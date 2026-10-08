@@ -27,7 +27,7 @@ function item(overrides: Partial<PendingApprovalDto> = {}): PendingApprovalDto {
     stepId: "step-1",
     stepOrder: 1,
     approverRole: "APPROVER",
-    request: { id: "req-1", type: "REVISION", createdAt: "2025-06-01T09:30:00.000Z", requestedBy: { id: "user-1", fullName: "Ece Editör" } },
+    request: { id: "req-1", type: "REVISION", reason: "Madde 4 eklendi", createdAt: "2025-06-01T09:30:00.000Z", requestedBy: { id: "user-1", fullName: "Ece Editör" } },
     document: { id: "doc-1", code: "PR-KK-001", title: "Doküman Kontrol Prosedürü", department: { id: "dep-kk", name: "Kalite Koordinatörlüğü", code: "KK" } },
     revision: { id: "rev-3", revisionNo: 3, changeSummary: "Madde 4 eklendi" },
     ...overrides,
@@ -71,6 +71,39 @@ describe("ApprovalsList", () => {
     expect(within(row).getByText("01.06.2025 12:30")).toBeInTheDocument();
     expect(screen.getByText(t.total(1))).toBeInTheDocument();
     expect(getPendingApprovals).toHaveBeenCalledWith(1);
+  });
+
+  it("shows why: the change summary of a revision, the reason of a withdrawal", async () => {
+    getPendingApprovals.mockResolvedValue(
+      page([
+        item(),
+        item({
+          stepId: "step-2",
+          request: { id: "req-2", type: "WITHDRAWAL", reason: "Süreç artık kullanılmıyor", createdAt: "2025-06-02T09:30:00.000Z", requestedBy: { id: "user-1", fullName: "Ece Editör" } },
+        }),
+      ]),
+    );
+    renderWith(<ApprovalsList />);
+
+    const rows = within(await screen.findByRole("table", { name: t.tableLabel })).getAllByRole("row").slice(1);
+
+    expect(within(rows[0]).getByText("Madde 4 eklendi")).toBeInTheDocument();
+    expect(within(rows[0]).getByText(`${tr.approval.summaryLabel}:`)).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Süreç artık kullanılmıyor")).toBeInTheDocument();
+    expect(within(rows[1]).getByText(`${tr.approval.reasonLabel}:`)).toBeInTheDocument();
+    expect(within(rows[1]).getByText(tr.approval.type.WITHDRAWAL)).toBeInTheDocument();
+  });
+
+  it("asks about a withdrawal in the words of a withdrawal", async () => {
+    getPendingApprovals.mockResolvedValue(
+      page([item({ request: { id: "req-2", type: "WITHDRAWAL", reason: "Süreç artık kullanılmıyor", createdAt: "2025-06-02T09:30:00.000Z", requestedBy: { id: "user-1", fullName: "Ece Editör" } } })]),
+    );
+    renderWith(<ApprovalsList />);
+    const row = within(await screen.findByRole("table", { name: t.tableLabel })).getAllByRole("row")[1];
+
+    await userEvent.click(within(row).getByRole("button", { name: new RegExp(tr.approval.approve) }));
+
+    expect(within(screen.getByRole("dialog")).getByText(tr.decide.approveWithdrawalConfirm("PR-KK-001"))).toBeInTheDocument();
   });
 
   it("offers the same items as cards on small screens", async () => {

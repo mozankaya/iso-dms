@@ -108,6 +108,14 @@ describe("DocumentList", () => {
     expect(within(table).getByRole("link", { name: "Doküman Kontrol Prosedürü" })).toHaveAttribute("href", "/documents/d-1");
   });
 
+  it("offers no download for a withdrawn document, whose last revision is no longer in force", async () => {
+    getDocuments.mockResolvedValue(page([item({ id: "d-gone", code: "PR-KK-003", status: "WITHDRAWN", revisionNo: 2 })]));
+    renderList();
+
+    const table = await screen.findByRole("table");
+    expect(within(table).queryByRole("button", { name: `${tr.detail.download} (PR-KK-003)` })).not.toBeInTheDocument();
+  });
+
   it("offers a download only for documents that have a revision in force", async () => {
     getDocuments.mockResolvedValue(
       page([

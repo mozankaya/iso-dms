@@ -111,6 +111,12 @@ export function ApprovalPanel({ document }: { document: DocumentDetailDto }) {
               </span>
             </p>
             <p className="text-sm text-muted">{t.requestedBy(approval.requestedBy.fullName, formatDateTime(approval.createdAt))}</p>
+            {approval.reason && (
+              <p className="text-sm break-words">
+                <span className="text-muted">{approval.type === "WITHDRAWAL" ? t.reasonLabel : t.summaryLabel}: </span>
+                {approval.reason}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -145,7 +151,7 @@ export function ApprovalPanel({ document }: { document: DocumentDetailDto }) {
                       size="sm"
                       variant={mode === "approve" ? "default" : "outline"}
                       onClick={() =>
-                        setTarget({ stepId: step.id, mode, documentId: document.id, code: document.code, revisionNo: approval.revision.revisionNo })
+                        setTarget({ stepId: step.id, mode, documentId: document.id, code: document.code, revisionNo: approval.revision.revisionNo, type: approval.type })
                       }
                     >
                       {mode === "approve" ? t.approve : t.reject}

@@ -114,6 +114,12 @@ describe("describeEntry", () => {
     expect(describe_("REVISION_CANCELLED", { reason: "Artık gerekli değil" })).toBe("Artık gerekli değil");
   });
 
+  it("shows the reason of a withdrawal request and of a withdrawal", () => {
+    expect(describe_("WITHDRAWAL_REQUESTED", { reason: "Süreç kalktı" })).toBe("Süreç kalktı");
+    expect(describe_("DOCUMENT_WITHDRAWN", { reason: "Süreç kalktı" })).toBe("Süreç kalktı");
+    expect(describe_("DOCUMENT_WITHDRAWN", null)).toBe("");
+  });
+
   it.each(["REQUEST_CANCELLED"])("has nothing to add for %s", (action) => {
     expect(describe_(action, { requestId: "x" })).toBe("");
   });

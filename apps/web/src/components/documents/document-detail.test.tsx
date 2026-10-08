@@ -184,6 +184,30 @@ describe("DocumentDetail", () => {
       expect(screen.getByRole("button", { name: tr.cancelRevision.button })).toBeInTheDocument();
     });
 
+    it("offers asking for a withdrawal to those who may", async () => {
+      getDocument.mockResolvedValue(documentDetail({ canRequestWithdrawal: true }));
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(screen.getByRole("button", { name: tr.withdrawal.button })).toBeInTheDocument();
+    });
+
+    it("hides the withdrawal button from everybody else", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(screen.queryByRole("button", { name: tr.withdrawal.button })).not.toBeInTheDocument();
+    });
+
+    it("offers no download of the file in force for a withdrawn document", async () => {
+      getDocument.mockResolvedValue(documentDetail({ status: "WITHDRAWN", withdrawnAt: "2025-09-01T09:00:00.000Z", withdrawalReason: "Süreç kalktı" }));
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(documentDownload()).toBeUndefined();
+      expect(screen.getByText(t.withdrawnNotice)).toBeInTheDocument();
+    });
+
     it("hides the give up button from everybody else", async () => {
       renderDetail();
       await screen.findByRole("heading", { level: 1 });
@@ -310,6 +334,7 @@ describe("DocumentDetail approval", () => {
           status: "PENDING",
           revision: { id: "rev-2", revisionNo: 0 },
           requestedBy: { id: "user-1", fullName: "Ece Editör" },
+          reason: "",
           createdAt: "2025-06-01T09:30:00.000Z",
           resolvedAt: null,
           steps: [

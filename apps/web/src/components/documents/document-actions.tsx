@@ -6,12 +6,13 @@ import { tr } from "@/lib/i18n/tr";
 
 /**
  * Row actions of the document list. "Düzenle"/"Görüntüle" opens the editor screen (the API decides the
- * mode); "İndir" is offered when a revision is in force, which is what the download endpoint serves.
+ * mode); "İndir" is offered when a revision is in force (a withdrawn document has none), which is what the
+ * download endpoint serves.
  */
 export function DocumentActions({
   document,
 }: {
-  document: Pick<DocumentListItemDto, "id" | "code" | "canEdit" | "revisionNo">;
+  document: Pick<DocumentListItemDto, "id" | "code" | "canEdit" | "revisionNo" | "status">;
 }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-3">
@@ -21,7 +22,7 @@ export function DocumentActions({
       >
         {document.canEdit ? tr.documents.actions.edit : tr.documents.actions.view}
       </Link>
-      {document.revisionNo !== null && (
+      {document.revisionNo !== null && document.status !== "WITHDRAWN" && (
         <DownloadButton
           variant="ghost"
           path={downloadPath.current(document.id)}

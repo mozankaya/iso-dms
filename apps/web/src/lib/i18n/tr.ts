@@ -194,6 +194,8 @@ export const tr = {
     cancelSubmit: "Geri çek",
     cancelling: "Geri çekiliyor...",
     close: "Vazgeç",
+    reasonLabel: "Gerekçe",
+    summaryLabel: "Değişiklik açıklaması",
     rejectedNotice: "Son gönderim reddedildi. Gerekçeyi okuyup taslağı düzenleyin ve yeniden onaya gönderin.",
   },
   decide: {
@@ -202,6 +204,10 @@ export const tr = {
     approveConfirm: (code: string, revisionNo: number) => `${code} kodlu dokümanın ${revisionNo}. revizyonunu onaylıyorsunuz.`,
     rejectConfirm: (code: string, revisionNo: number) =>
       `${code} kodlu dokümanın ${revisionNo}. revizyonu reddedilecek ve taslak hazırlayanlara geri dönecek.`,
+    approveWithdrawalConfirm: (code: string) =>
+      `${code} kodlu dokümanın yayından kaldırılmasını onaylıyorsunuz. Son onay verildiğinde doküman geçersiz olur.`,
+    rejectWithdrawalConfirm: (code: string) =>
+      `${code} kodlu dokümanın yayından kaldırma talebi reddedilecek; doküman yayında kalacak.`,
     comment: "Yorum (isteğe bağlı)",
     commentHint: "Varsa notunuzu yazın.",
     reason: "Red gerekçesi",
@@ -210,6 +216,18 @@ export const tr = {
     submitApprove: "Onayla",
     submitReject: "Reddet",
     submitting: "Kaydediliyor...",
+    cancel: "Vazgeç",
+  },
+  withdrawal: {
+    button: "Yayından Kaldırma Talebi",
+    dialogTitle: "Yayından kaldırma talebi",
+    confirm: (code: string) =>
+      `${code} kodlu doküman için yayından kaldırma talebi açılacak. Onaylanana kadar doküman yayında kalır; son onayla geçersiz olur ve okuyuculara gösterilmez. Dosya ve revizyonlar silinmez.`,
+    reason: "Kaldırma gerekçesi",
+    reasonHint: "Dokümanın neden yayından kaldırılacağını yazın.",
+    reasonRequired: "Kaldırma gerekçesi zorunlu",
+    submit: "Talebi gönder",
+    submitting: "Gönderiliyor...",
     cancel: "Vazgeç",
   },
   cancelRevision: {
@@ -307,6 +325,8 @@ export const tr = {
       DOCUMENT_CREATED: "Doküman oluşturuldu",
       DOCUMENT_OPENED: "Doküman açıldı",
       DOCUMENT_PUBLISHED: "Doküman yayınlandı",
+      WITHDRAWAL_REQUESTED: "Yayından kaldırma talep edildi",
+      DOCUMENT_WITHDRAWN: "Doküman yayından kaldırıldı",
       REVISION_STARTED: "Revizyon başlatıldı",
       REVISION_SUBMITTED: "Onaya gönderildi",
       REVISION_CANCELLED: "Revizyon iptal edildi",
@@ -389,6 +409,11 @@ export const tr = {
     CANCEL_NOT_ALLOWED: "Bu işlemi yapma yetkiniz yok.",
     REVISION_NOT_CANCELLABLE: "Yalnızca yürürlükteki bir dokümanın açık revizyon taslağı iptal edilebilir.",
     REASON_REQUIRED: "Gerekçe zorunlu.",
+    WITHDRAWAL_NOT_ALLOWED: "Yalnızca kendi biriminizin dokümanları için yayından kaldırma talebi açabilirsiniz.",
+    DOCUMENT_NOT_WITHDRAWABLE: "Yalnızca yayındaki bir doküman için yayından kaldırma talebi açılabilir.",
+    WITHDRAWAL_BLOCKED_BY_REVISION: "Dokümanın açık bir revizyonu var. Önce revizyondan vazgeçin ya da sonuçlandırın.",
+    WITHDRAWAL_ALREADY_REQUESTED: "Bu doküman için zaten bekleyen bir yayından kaldırma talebi var.",
+    WITHDRAWAL_PENDING: "Yayından kaldırma talebi beklerken yeni revizyon başlatılamaz.",
     CHANGE_SUMMARY_REQUIRED: "Değişiklik açıklaması zorunlu.",
     REVISION_ALREADY_OPEN: "Bu dokümanın zaten açık bir taslağı ya da onaydaki bir revizyonu var.",
     DOCUMENT_NOT_REVISABLE: "Yalnızca yayındaki dokümanların revizyonu başlatılabilir.",

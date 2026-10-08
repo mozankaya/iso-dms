@@ -18,6 +18,8 @@ export interface DecisionTarget {
   documentId: string;
   code: string;
   revisionNo: number;
+  /** A withdrawal is decided in other words than a revision */
+  type?: "NEW" | "REVISION" | "WITHDRAWAL";
 }
 
 function DecisionForm({ target, onClose }: { target: DecisionTarget; onClose: () => void }) {
@@ -26,6 +28,10 @@ function DecisionForm({ target, onClose }: { target: DecisionTarget; onClose: ()
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const rejecting = target.mode === "reject";
+  const withdrawal = target.type === "WITHDRAWAL";
+  const confirmation = withdrawal
+    ? (rejecting ? t.rejectWithdrawalConfirm : t.approveWithdrawalConfirm)(target.code)
+    : (rejecting ? t.rejectConfirm : t.approveConfirm)(target.code, target.revisionNo);
 
   const decide = useMutation({
     mutationFn: () => decideApproval(target.stepId, target.mode, comment.trim() || undefined),
@@ -51,7 +57,7 @@ function DecisionForm({ target, onClose }: { target: DecisionTarget; onClose: ()
 
   return (
     <form onSubmit={submit} className="space-y-4" noValidate>
-      <p className="text-sm">{(rejecting ? t.rejectConfirm : t.approveConfirm)(target.code, target.revisionNo)}</p>
+      <p className="text-sm">{confirmation}</p>
 
       <TextAreaField
         id={commentId}

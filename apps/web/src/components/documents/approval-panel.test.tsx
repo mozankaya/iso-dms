@@ -39,6 +39,7 @@ function approval(overrides: Partial<ApprovalRequestDto> = {}): ApprovalRequestD
     status: "PENDING",
     revision: { id: "rev-3", revisionNo: 3 },
     requestedBy: { id: "user-1", fullName: "Ece Editör" },
+    reason: "Madde 4 eklendi",
     createdAt: "2025-06-01T09:30:00.000Z",
     resolvedAt: null,
     steps: [step(), step({ id: "step-2", stepOrder: 2, approverRole: "QUALITY_MANAGER" })],
@@ -50,12 +51,12 @@ function approval(overrides: Partial<ApprovalRequestDto> = {}): ApprovalRequestD
 function renderPanel(request: ApprovalRequestDto | null, overrides: Parameters<typeof documentDetail>[0] = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const invalidate = vi.spyOn(client, "invalidateQueries");
-  render(
+  const view = render(
     <QueryClientProvider client={client}>
       <ApprovalPanel document={documentDetail({ approval: request, ...overrides })} />
     </QueryClientProvider>,
   );
-  return { invalidate };
+  return { invalidate, unmount: view.unmount };
 }
 
 beforeEach(() => {
@@ -79,6 +80,34 @@ describe("ApprovalPanel", () => {
     expect(screen.getByText(`(${t.type.REVISION})`)).toBeInTheDocument();
     expect(screen.getByText(t.status.PENDING)).toBeInTheDocument();
     expect(screen.getByText(t.requestedBy("Ece Editör", "01.06.2025 12:30"))).toBeInTheDocument();
+  });
+
+  it("shows the change summary of a revision, and the reason of a withdrawal", () => {
+    const { unmount } = renderPanel(approval());
+    expect(screen.getByText(`${t.summaryLabel}:`)).toBeInTheDocument();
+    expect(screen.getByText("Madde 4 eklendi")).toBeInTheDocument();
+    unmount();
+
+    renderPanel(approval({ type: "WITHDRAWAL", reason: "Süreç artık kullanılmıyor" }));
+    expect(screen.getByText(`${t.reasonLabel}:`)).toBeInTheDocument();
+    expect(screen.getByText("Süreç artık kullanılmıyor")).toBeInTheDocument();
+    expect(screen.getByText(`(${t.type.WITHDRAWAL})`)).toBeInTheDocument();
+  });
+
+  it("shows no text line when the request has no reason", () => {
+    renderPanel(approval({ reason: "" }));
+    expect(screen.queryByText(`${t.summaryLabel}:`)).not.toBeInTheDocument();
+  });
+
+  it("decides a withdrawal in the words of a withdrawal", async () => {
+    renderPanel(approval({ type: "WITHDRAWAL", steps: [step({ canDecide: true }), step({ id: "step-2", stepOrder: 2, approverRole: "QUALITY_MANAGER" })] }));
+
+    await userEvent.click(screen.getByRole("button", { name: t.approve }));
+    expect(within(screen.getByRole("dialog")).getByText(tr.decide.approveWithdrawalConfirm("PR-KK-001"))).toBeInTheDocument();
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: tr.decide.cancel }));
+
+    await userEvent.click(screen.getByRole("button", { name: t.reject }));
+    expect(within(screen.getByRole("dialog")).getByText(tr.decide.rejectWithdrawalConfirm("PR-KK-001"))).toBeInTheDocument();
   });
 
   it("lists the steps in order with their roles and state", () => {

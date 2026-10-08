@@ -128,6 +128,13 @@ export function decideApproval(stepId: string, decision: "approve" | "reject", c
   });
 }
 
+export function requestWithdrawal(documentId: string, reason: string): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/documents/${encodeURIComponent(documentId)}/withdrawal-requests`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
 export function cancelApprovalRequest(requestId: string): Promise<DocumentDetailDto> {
   return apiFetch<DocumentDetailDto>(`/approval-requests/${encodeURIComponent(requestId)}/cancel`, { method: "POST" });
 }

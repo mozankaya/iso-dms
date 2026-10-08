@@ -11,6 +11,7 @@ import { CancelRevisionButton } from "@/components/documents/cancel-revision-but
 import { DocumentHistory } from "@/components/audit/document-history";
 import { DownloadButton } from "@/components/documents/download-button";
 import { RevisionHistory } from "@/components/documents/revision-history";
+import { RequestWithdrawalButton } from "@/components/documents/request-withdrawal-button";
 import { StartRevisionButton } from "@/components/documents/start-revision-button";
 import { SubmitButton } from "@/components/documents/submit-button";
 import { StatusBadge } from "@/components/documents/status-badge";
@@ -145,12 +146,13 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
               <CancelRevisionButton documentId={doc.id} code={doc.code} revision={doc.openRevision} />
             )}
             {doc.canStartRevision && <StartRevisionButton documentId={doc.id} code={doc.code} />}
+            {doc.canRequestWithdrawal && <RequestWithdrawalButton documentId={doc.id} code={doc.code} />}
             {doc.openRevision && (
               <Link href={`/documents/${doc.id}/edit`} className={buttonVariants()}>
                 {doc.canEdit ? t.edit : t.view}
               </Link>
             )}
-            {doc.currentRevisionId && <DownloadButton path={downloadPath.current(doc.id)} fallbackName={doc.code} />}
+            {doc.currentRevisionId && doc.status !== "WITHDRAWN" && <DownloadButton path={downloadPath.current(doc.id)} fallbackName={doc.code} />}
           </div>
         </div>
       </div>
