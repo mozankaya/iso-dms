@@ -120,7 +120,12 @@ describe("describeEntry", () => {
     expect(describe_("DOCUMENT_WITHDRAWN", null)).toBe("");
   });
 
-  it.each(["REQUEST_CANCELLED"])("has nothing to add for %s", (action) => {
+  it("shows how a closed feedback was handled", () => {
+    expect(describe_("FEEDBACK_RESOLVED", { feedbackId: "x", note: "Madde 3 yeniden yazıldı" })).toBe("Madde 3 yeniden yazıldı");
+    expect(describe_("FEEDBACK_RESOLVED", { feedbackId: "x", note: null })).toBe("");
+  });
+
+  it.each(["REQUEST_CANCELLED", "FEEDBACK_SENT", "FEEDBACK_REOPENED"])("has nothing to add for %s", (action) => {
     expect(describe_(action, { requestId: "x" })).toBe("");
   });
 

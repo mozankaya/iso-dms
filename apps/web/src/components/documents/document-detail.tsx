@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
+import { FeedbackForm } from "@/components/feedback/feedback-form";
 import { ApprovalPanel } from "@/components/documents/approval-panel";
 import { CancelRevisionButton } from "@/components/documents/cancel-revision-button";
 import { DocumentHistory } from "@/components/audit/document-history";
@@ -186,6 +187,8 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
         )}
         {revisions.isSuccess && <RevisionHistory documentId={doc.id} code={doc.code} documentStatus={doc.status} revisions={revisions.data} />}
       </section>
+
+      {doc.canSendFeedback && <FeedbackForm documentId={doc.id} />}
 
       {canViewAuditLog(user?.role) && <DocumentHistory documentId={doc.id} showAddress={user?.role === "ADMIN"} />}
     </div>

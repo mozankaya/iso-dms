@@ -53,6 +53,9 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
       parts.push(text(metadata, "comment"));
       break;
     }
+    case "FEEDBACK_RESOLVED":
+      parts.push(text(metadata, "note"));
+      break;
     case "REVISION_CANCELLED":
     case "WITHDRAWAL_REQUESTED":
     case "DOCUMENT_WITHDRAWN":

@@ -16,7 +16,7 @@ vi.mock("@/lib/api/endpoints", async (importOriginal) => ({
   getCategories: () => getCategories(),
 }));
 
-const everything: DashboardStatsDto = { totalDocuments: 12, newlyPublished: 3, revised: 2, withdrawn: 1, awaitingApproval: 4 };
+const everything: DashboardStatsDto = { totalDocuments: 12, newlyPublished: 3, revised: 2, withdrawn: 1, awaitingApproval: 4, openFeedback: 5 };
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -48,6 +48,7 @@ describe("the dashboard counters", () => {
       `${t.revised}2${t.lastDays(30)}`,
       `${t.withdrawn}1${t.lastDays(30)}`,
       `${t.awaitingApproval}4${t.waitingForYou}`,
+      `${t.openFeedback}5${t.toBeHandled}`,
     ]);
   });
 
@@ -60,26 +61,29 @@ describe("the dashboard counters", () => {
     expect(link(t.revised)).toHaveAttribute("href", "/lists/revised");
     expect(link(t.withdrawn)).toHaveAttribute("href", "/lists/withdrawn");
     expect(link(t.awaitingApproval)).toHaveAttribute("href", "/approvals");
+    expect(link(t.openFeedback)).toHaveAttribute("href", "/feedback");
     expect(within(counters()).queryByRole("link", { name: new RegExp(t.totalDocuments) })).not.toBeInTheDocument();
   });
 
   it("leaves out the counters the role has no business with", async () => {
-    getDashboardStats.mockResolvedValue({ totalDocuments: 12, newlyPublished: 3, revised: 2, withdrawn: null, awaitingApproval: null });
+    getDashboardStats.mockResolvedValue({ totalDocuments: 12, newlyPublished: 3, revised: 2, withdrawn: null, awaitingApproval: null, openFeedback: null });
     renderPage();
     await within(counters()).findByText(t.totalDocuments);
 
     expect(within(counters()).getAllByRole("listitem")).toHaveLength(3);
     expect(within(counters()).queryByText(t.withdrawn)).not.toBeInTheDocument();
     expect(within(counters()).queryByText(t.awaitingApproval)).not.toBeInTheDocument();
+    expect(within(counters()).queryByText(t.openFeedback)).not.toBeInTheDocument();
   });
 
   it("shows a counter that is zero, which is not the same as one that is missing", async () => {
-    getDashboardStats.mockResolvedValue({ ...everything, withdrawn: 0, awaitingApproval: 0 });
+    getDashboardStats.mockResolvedValue({ ...everything, withdrawn: 0, awaitingApproval: 0, openFeedback: 0 });
     renderPage();
     await within(counters()).findByText(t.withdrawn);
 
     expect(within(counters()).getByText(t.withdrawn).parentElement).toHaveTextContent(`${t.withdrawn}0`);
     expect(within(counters()).getByText(t.awaitingApproval)).toBeInTheDocument();
+    expect(within(counters()).getByText(t.openFeedback).parentElement).toHaveTextContent(`${t.openFeedback}0`);
   });
 
   it("shows a loading message first", () => {

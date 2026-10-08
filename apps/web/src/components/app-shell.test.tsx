@@ -144,3 +144,24 @@ describe("AppShell lists", () => {
     expect(screen.getByRole("link", { name: tr.lists.kinds.new.title })).not.toHaveAttribute("aria-current");
   });
 });
+
+describe("AppShell feedback", () => {
+  it.each(["QUALITY_MANAGER", "ADMIN"])("links the feedback for %s", (who) => {
+    role = who;
+    renderShell();
+    expect(screen.getByRole("link", { name: tr.nav.feedback })).toHaveAttribute("href", "/feedback");
+  });
+
+  it.each(["READER", "EDITOR", "APPROVER"])("does not link the feedback for %s", (who) => {
+    role = who;
+    renderShell();
+    expect(screen.queryByRole("link", { name: tr.nav.feedback })).not.toBeInTheDocument();
+  });
+
+  it("marks the feedback as the current page when it is open", () => {
+    role = "QUALITY_MANAGER";
+    pathname = "/feedback";
+    renderShell();
+    expect(screen.getByRole("link", { name: tr.nav.feedback })).toHaveAttribute("aria-current", "page");
+  });
+});

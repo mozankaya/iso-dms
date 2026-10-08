@@ -1,14 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardCheck, FilePlus2, FileX2, History, Home, LogOut, Menu, ScrollText, X } from "lucide-react";
+import { ClipboardCheck, FilePlus2, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
 import { getCategories, getPendingApprovals } from "@/lib/api/endpoints";
-import { canDecideApprovals, canViewAuditLog, canViewWithdrawnList } from "@/lib/auth/permissions";
+import { canDecideApprovals, canReadFeedback, canViewAuditLog, canViewWithdrawnList } from "@/lib/auth/permissions";
 import { useRequireAuth } from "@/lib/auth/use-require-auth";
 import { tr } from "@/lib/i18n/tr";
 import { cn } from "@/lib/utils";
@@ -148,6 +148,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <ScrollText className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {tr.nav.auditLog}
               </NavLink>
+              {canReadFeedback(user?.role) && (
+                <NavLink href="/feedback" active={pathname === "/feedback"} onNavigate={closeMenu}>
+                  <MessageSquare className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {tr.nav.feedback}
+                </NavLink>
+              )}
             </>
           )}
         </nav>

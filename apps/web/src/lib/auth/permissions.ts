@@ -25,6 +25,13 @@ export function canViewWithdrawnList(role: UserRole | undefined): boolean {
   return role !== undefined && role !== "READER";
 }
 
+/** Feedback is read by the quality managers and administrators (PROJECT.md 6.8); everybody may send it. */
+const FEEDBACK_READER_ROLES: readonly UserRole[] = ["QUALITY_MANAGER", "ADMIN"];
+
+export function canReadFeedback(role: UserRole | undefined): boolean {
+  return role !== undefined && FEEDBACK_READER_ROLES.includes(role);
+}
+
 export function canCreateDocuments(role: UserRole | undefined): boolean {
   return role !== undefined && DOCUMENT_CREATOR_ROLES.includes(role);
 }

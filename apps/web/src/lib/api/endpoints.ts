@@ -10,6 +10,8 @@ import type {
   DocumentListItemDto,
   DocumentListQuery,
   EditorSessionDto,
+  FeedbackDto,
+  FeedbackQuery,
   FileType,
   PaginatedDto,
   PendingApprovalDto,
@@ -17,6 +19,7 @@ import type {
   PublicationListKind,
   PublicationListQuery,
   RevisionHistoryItemDto,
+  SentFeedbackDto,
   TemplateDto,
 } from "@iso-dms/shared";
 import { DEFAULT_PAGE_SIZE } from "@iso-dms/shared";
@@ -138,6 +141,33 @@ export function decideApproval(stepId: string, decision: "approve" | "reject", c
     method: "POST",
     body: JSON.stringify(comment ? { comment } : {}),
   });
+}
+
+export function sendFeedback(documentId: string, message: string): Promise<SentFeedbackDto> {
+  return apiFetch<SentFeedbackDto>(`/documents/${encodeURIComponent(documentId)}/feedback`, {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
+}
+
+export function getFeedback(query: FeedbackQuery): Promise<PaginatedDto<FeedbackDto>> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  const text = search.toString();
+  return apiFetch<PaginatedDto<FeedbackDto>>(`/feedback${text ? `?${text}` : ""}`);
+}
+
+export function resolveFeedback(id: string, note?: string): Promise<FeedbackDto> {
+  return apiFetch<FeedbackDto>(`/feedback/${encodeURIComponent(id)}/resolve`, {
+    method: "POST",
+    body: JSON.stringify(note ? { note } : {}),
+  });
+}
+
+export function reopenFeedback(id: string): Promise<FeedbackDto> {
+  return apiFetch<FeedbackDto>(`/feedback/${encodeURIComponent(id)}/reopen`, { method: "POST" });
 }
 
 export function requestWithdrawal(documentId: string, reason: string): Promise<DocumentDetailDto> {

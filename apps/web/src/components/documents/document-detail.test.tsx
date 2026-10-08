@@ -323,6 +323,23 @@ describe("DocumentDetail", () => {
   });
 });
 
+describe("DocumentDetail feedback", () => {
+  it("offers the feedback form on a document in force", async () => {
+    renderDetail();
+
+    expect(await screen.findByRole("heading", { name: tr.feedback.title })).toBeInTheDocument();
+    expect(screen.getByLabelText(tr.feedback.label)).toBeInTheDocument();
+  });
+
+  it("offers nothing where feedback cannot be sent", async () => {
+    getDocument.mockResolvedValue(documentDetail({ status: "DRAFT", canSendFeedback: false }));
+    renderDetail();
+    await screen.findByRole("heading", { level: 1 });
+
+    expect(screen.queryByRole("heading", { name: tr.feedback.title })).not.toBeInTheDocument();
+  });
+});
+
 describe("DocumentDetail approval", () => {
   it("shows the approval of the revision under review", async () => {
     getDocument.mockResolvedValue(

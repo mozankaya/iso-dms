@@ -30,6 +30,9 @@ function countersOf(stats: DashboardStatsDto): Counter[] {
     stats.awaitingApproval === null
       ? null
       : { key: "awaiting", label: t.awaitingApproval, value: stats.awaitingApproval, hint: t.waitingForYou, href: "/approvals" },
+    stats.openFeedback === null
+      ? null
+      : { key: "feedback", label: t.openFeedback, value: stats.openFeedback, hint: t.toBeHandled, href: "/feedback" },
   ];
   return counters.filter((counter): counter is Counter => counter !== null);
 }
@@ -69,7 +72,7 @@ export default function DashboardPage() {
         )}
         {stats.isPending && <p className="text-muted">{tr.common.loading}</p>}
         {stats.isSuccess && (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {countersOf(stats.data).map((counter) => (
               <li key={counter.key}>
                 <CounterCard counter={counter} />
