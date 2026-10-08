@@ -180,6 +180,12 @@ describe("AppShell administration", () => {
     expect(screen.getByRole("link", { name: tr.nav.users })).toHaveAttribute("href", "/admin/users");
   });
 
+  it("links the templates for the administrator", () => {
+    role = "ADMIN";
+    renderShell();
+    expect(screen.getByRole("link", { name: tr.nav.templates })).toHaveAttribute("href", "/admin/templates");
+  });
+
   it("links the change of password for everybody", () => {
     renderShell();
     expect(screen.getByRole("link", { name: tr.auth.changePassword.link })).toHaveAttribute("href", "/change-password");
@@ -191,5 +197,6 @@ describe("AppShell administration", () => {
     expect(screen.queryByRole("link", { name: tr.nav.departments })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: tr.nav.categoriesAdmin })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: tr.nav.users })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: tr.nav.templates })).not.toBeInTheDocument();
   });
 });

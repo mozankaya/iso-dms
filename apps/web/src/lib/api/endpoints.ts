@@ -1,6 +1,7 @@
 import type {
   AdminCategoryDto,
   AdminDepartmentDto,
+  AdminTemplateDto,
   AdminUserDto,
   AuditLogPage,
   AuditLogQuery,
@@ -29,6 +30,7 @@ import type {
   TemplateDto,
   UpdateCategoryRequest,
   UpdateDepartmentRequest,
+  UpdateTemplateRequest,
   UpdateUserRequest,
   UserWithPasswordDto,
   AdminUserListQuery,
@@ -253,3 +255,32 @@ export function resetUserPassword(id: string, request: ResetPasswordRequest): Pr
 export function changePassword(request: ChangePasswordRequest): Promise<AuthResponseDto> {
   return apiFetch<AuthResponseDto>("/auth/password", { method: "PATCH", body: JSON.stringify(request) });
 }
+
+export function getAdminTemplates(): Promise<AdminTemplateDto[]> {
+  return apiFetch<AdminTemplateDto[]>("/templates/overview");
+}
+
+export function createTemplate(request: { name: string; categoryId: string | null; isDefault: boolean; file: File }): Promise<AdminTemplateDto> {
+  const body = new FormData();
+  body.set("name", request.name);
+  body.set("categoryId", request.categoryId ?? "");
+  body.set("isDefault", String(request.isDefault));
+  body.set("file", request.file);
+  return apiFetch<AdminTemplateDto>("/templates", { method: "POST", body });
+}
+
+export function updateTemplate(id: string, request: UpdateTemplateRequest): Promise<AdminTemplateDto> {
+  return apiFetch<AdminTemplateDto>(`/templates/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(request) });
+}
+
+export function replaceTemplateFile(id: string, file: File): Promise<AdminTemplateDto> {
+  const body = new FormData();
+  body.set("file", file);
+  return apiFetch<AdminTemplateDto>(`/templates/${encodeURIComponent(id)}/file`, { method: "PUT", body });
+}
+
+export function deleteTemplate(id: string): Promise<true> {
+  return apiFetch<void>(`/templates/${encodeURIComponent(id)}`, { method: "DELETE" }).then(() => true as const);
+}
+
+export const templateDownloadPath = (id: string) => `/templates/${encodeURIComponent(id)}/download`;

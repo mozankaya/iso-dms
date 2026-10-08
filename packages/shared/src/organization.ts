@@ -90,3 +90,23 @@ export interface UpdateCategoryRequest {
   externalUrl?: string | null;
   isActive?: boolean;
 }
+
+/** A template of the organization as the administrator sees it (PROJECT.md 6.11). */
+export interface AdminTemplateDto {
+  id: string;
+  name: string;
+  fileType: 'DOCX' | 'XLSX';
+  /** null for templates available in every category */
+  category: { id: string; name: string } | null;
+  /** The one new documents start from when nothing else is chosen, per category and file type */
+  isDefault: boolean;
+  createdAt: string;
+}
+
+/** Sent as multipart form fields next to the file; the file type comes from the file itself. */
+export interface UpdateTemplateRequest {
+  name?: string;
+  /** null: available in every category */
+  categoryId?: string | null;
+  isDefault?: boolean;
+}

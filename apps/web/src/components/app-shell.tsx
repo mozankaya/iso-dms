@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ClipboardCheck, KeyRound, Users, FilePlus2, FolderCog, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
+import { Building2, FileStack, ClipboardCheck, KeyRound, Users, FilePlus2, FolderCog, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -161,6 +161,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <NavLink href="/admin/users" active={pathname === "/admin/users"} onNavigate={closeMenu}>
                     <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
                     {tr.nav.users}
+                  </NavLink>
+                  <NavLink href="/admin/templates" active={pathname === "/admin/templates"} onNavigate={closeMenu}>
+                    <FileStack className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {tr.nav.templates}
                   </NavLink>
                   <NavLink href="/admin/departments" active={pathname === "/admin/departments"} onNavigate={closeMenu}>
                     <Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />

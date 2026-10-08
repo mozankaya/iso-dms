@@ -19,6 +19,11 @@ function userRole(role: string | null): string | null {
   return role in tr.admin.users.roles ? tr.admin.users.roles[role as keyof typeof tr.admin.users.roles] : role;
 }
 
+function templateType(type: string | null): string | null {
+  if (!type) return null;
+  return type in tr.admin.templates.fileTypes ? tr.admin.templates.fileTypes[type as keyof typeof tr.admin.templates.fileTypes] : type;
+}
+
 function reason(code: string | null): string | null {
   if (!code) return null;
   return code in t.details.reasons ? t.details.reasons[code as keyof typeof t.details.reasons] : code;
@@ -109,6 +114,24 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
       }
       break;
     }
+    case "TEMPLATE_CREATED":
+      parts.push(text(metadata, "name"));
+      parts.push(templateType(text(metadata, "fileType")));
+      parts.push(metadata?.isDefault === true ? t.details.changedFields.isDefault : null);
+      break;
+    case "TEMPLATE_UPDATED": {
+      parts.push(text(metadata, "name"));
+      for (const key of Object.keys(changesOf(metadata))) parts.push(t.details.changedFields[key] ?? key);
+      break;
+    }
+    case "TEMPLATE_FILE_REPLACED":
+      parts.push(text(metadata, "name"));
+      parts.push(formatFileSize(number(metadata, "fileSize")));
+      break;
+    case "TEMPLATE_DELETED":
+      parts.push(text(metadata, "name"));
+      parts.push(templateType(text(metadata, "fileType")));
+      break;
     case "USER_CREATED":
       parts.push(text(metadata, "email"));
       parts.push(userRole(text(metadata, "role")));

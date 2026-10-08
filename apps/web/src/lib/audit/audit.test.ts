@@ -199,4 +199,12 @@ describe("describeEntry", () => {
     expect(describe_("USER_PASSWORD_CHANGED", { wasTemporary: true })).toBe("Geçici şifre değiştirildi");
     expect(describe_("USER_PASSWORD_CHANGED", { wasTemporary: false })).toBe("");
   });
+
+  it("describes the template actions", () => {
+    expect(describe_("TEMPLATE_CREATED", { name: "Prosedür", fileType: "DOCX", isDefault: true })).toBe("Prosedür · Word · Varsayılan");
+    expect(describe_("TEMPLATE_CREATED", { name: "Tablo", fileType: "XLSX", isDefault: false })).toBe("Tablo · Excel");
+    expect(describe_("TEMPLATE_UPDATED", { name: "Prosedür", changes: { name: { from: "a", to: "b" }, categoryId: { from: null, to: "x" } } })).toBe("Prosedür · Ad · Kategori");
+    expect(describe_("TEMPLATE_FILE_REPLACED", { name: "Prosedür", fileType: "DOCX", fileSize: 2048 })).toMatch(/^Prosedür · 2/);
+    expect(describe_("TEMPLATE_DELETED", { name: "Prosedür", fileType: "DOCX" })).toBe("Prosedür · Word");
+  });
 });
