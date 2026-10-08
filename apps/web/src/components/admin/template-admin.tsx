@@ -290,6 +290,7 @@ export function TemplateAdmin() {
         </Button>
       </div>
       <ServerError message={downloadError} />
+      <p className="text-xs text-muted">{t.fieldsHelp}</p>
 
       {rows.length === 0 ? (
         <p className="text-muted">{t.empty}</p>
@@ -298,7 +299,7 @@ export function TemplateAdmin() {
           <table className="w-full text-sm" aria-label={t.tableLabel}>
             <thead className="border-b border-border text-left text-muted">
               <tr>
-                {(["name", "type", "category", "isDefault", "actions"] as const).map((column) => (
+                {(["name", "type", "category", "fields", "isDefault", "actions"] as const).map((column) => (
                   <th key={column} scope="col" className="px-4 py-2 font-medium whitespace-nowrap">
                     {t.columns[column]}
                   </th>
@@ -311,6 +312,9 @@ export function TemplateAdmin() {
                   <td className="px-4 py-2">{row.name}</td>
                   <td className="px-4 py-2">{t.fileTypes[row.fileType]}</td>
                   <td className="px-4 py-2">{row.category?.name ?? <span className="text-muted">{t.allCategories}</span>}</td>
+                  <td className="px-4 py-2">
+                    {row.fields.length > 0 ? row.fields.map((field) => t.fieldLabels[field]).join(", ") : <span className="text-muted">{t.noFields}</span>}
+                  </td>
                   <td className="px-4 py-2">{row.isDefault && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">{t.defaultBadge}</span>}</td>
                   <td className="px-4 py-2">
                     <Actions

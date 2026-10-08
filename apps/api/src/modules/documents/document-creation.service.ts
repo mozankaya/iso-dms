@@ -16,6 +16,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { buildRevisionKey, FILE_TYPE_INFO } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 import { canWriteInDepartment } from './document-access.policy';
+import { DocumentFieldsService } from './document-fields/document-fields.service';
 import { DocumentCodeService } from './document-code.service';
 import { DOCUMENT_LIST_SELECT, toDocumentListItem } from './document-list-item';
 import type { CreateDocumentDto, UploadDocumentDto } from './dto/create-document.dto';
@@ -47,6 +48,7 @@ export class DocumentCreationService {
     private readonly codes: DocumentCodeService,
     private readonly auditLogs: AuditLogsService,
     private readonly config: ConfigService,
+    private readonly fields: DocumentFieldsService,
   ) {}
 
   /** New document from a template (PROJECT.md 6.2 rule 1). */
@@ -200,8 +202,10 @@ export class DocumentCreationService {
     // an orphaned object, and the orphan is removed below if the transaction fails.
     await this.storage.put(storageKey, input.content, FILE_TYPE_INFO[input.fileType].mimeType);
 
+    let revisionId = '';
+    let created: DocumentListItemDto;
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      created = await this.prisma.$transaction(async (tx) => {
         const { sequenceNo, code } = await this.codes.allocate(tx, {
           organizationId: user.organizationId,
           categoryId: category.id,
@@ -228,7 +232,7 @@ export class DocumentCreationService {
           select: DOCUMENT_LIST_SELECT,
         });
 
-        await tx.revision.create({
+        const revision = await tx.revision.create({
           data: {
             organizationId: user.organizationId,
             documentId,
@@ -255,6 +259,7 @@ export class DocumentCreationService {
           tx,
         );
 
+        revisionId = revision.id;
         return toDocumentListItem(document, true);
       });
     } catch (error) {
@@ -263,5 +268,10 @@ export class DocumentCreationService {
       });
       throw error;
     }
+
+    // The document exists now; its code and name go into the fields of the file (PROJECT.md 6.14). Best effort: it is
+    // done again when the draft is sent to review.
+    await this.fields.applyBestEffort(revisionId, 'CREATED');
+    return created;
   }
 }

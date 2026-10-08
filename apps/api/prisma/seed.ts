@@ -8,6 +8,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env'), quiet: true });
 import { ObjectStorage, objectStorageOptionsFromEnv } from '../src/modules/storage/object-storage';
 import { FILE_TYPE_INFO } from '../src/modules/storage/storage-keys';
 import { createPrismaClient } from '../src/prisma/create-prisma-client';
+import { findDocumentFields } from '../src/modules/documents/document-fields/docx-fields';
 import { ensureBlankTemplateFiles } from './blank-templates';
 import { SEED_CATEGORIES, SEED_DEPARTMENTS, SEED_TEMPLATES } from './seed-data';
 
@@ -75,6 +76,7 @@ async function main() {
       const existing = await prisma.template.findFirst({
         where: { organizationId, name: template.name, fileType: template.fileType },
       });
+      const file = await readFile(path.resolve(__dirname, '../templates', template.fileName));
       if (!existing) {
         await prisma.template.create({
           data: {
@@ -82,13 +84,14 @@ async function main() {
             name: template.name,
             fileType: template.fileType,
             storageKey,
-            isDefault: true,
+            // Only one default per file type: an installation that has one keeps it
+            isDefault: template.isDefault && !(await prisma.template.findFirst({ where: { organizationId, fileType: template.fileType, categoryId: null, isDefault: true } })),
+            fieldTags: template.fileType === 'DOCX' ? await findDocumentFields(file) : [],
           },
         });
       }
 
       if (!(await storage.exists(existing?.storageKey ?? storageKey))) {
-        const file = await readFile(path.resolve(__dirname, '../templates', template.fileName));
         await storage.put(existing?.storageKey ?? storageKey, file, FILE_TYPE_INFO[template.fileType].mimeType);
       }
     }

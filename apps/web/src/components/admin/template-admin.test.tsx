@@ -34,7 +34,7 @@ vi.mock("@/lib/api/endpoints", async (importOriginal) => ({
 }));
 
 function template(overrides: Partial<AdminTemplateDto> = {}): AdminTemplateDto {
-  return { id: "t1", name: "Prosedür Şablonu", fileType: "DOCX", category: { id: "c1", name: "Prosedürler" }, isDefault: true, createdAt: "2026-10-01T09:00:00.000Z", ...overrides };
+  return { id: "t1", name: "Prosedür Şablonu", fileType: "DOCX", category: { id: "c1", name: "Prosedürler" }, isDefault: true, fields: ["DOC_CODE", "DOC_TITLE"], createdAt: "2026-10-01T09:00:00.000Z", ...overrides };
 }
 
 const docx = (name = "yeni.docx", size = 100) => new File([new Uint8Array(size)], name);
@@ -55,7 +55,7 @@ const invalidatedKeys = (invalidate: { mock: { calls: unknown[][] } }) => invali
 beforeEach(() => {
   vi.clearAllMocks();
   role = "ADMIN";
-  getAdminTemplates.mockResolvedValue([template(), template({ id: "t2", name: "Genel Excel", fileType: "XLSX", category: null, isDefault: false })]);
+  getAdminTemplates.mockResolvedValue([template(), template({ id: "t2", name: "Genel Excel", fileType: "XLSX", category: null, isDefault: false, fields: [] })]);
   getCategories.mockResolvedValue([{ id: "c1", name: "Prosedürler", slug: "prosedurler" }]);
 });
 
@@ -71,6 +71,16 @@ describe("TemplateAdmin list", () => {
     expect(within(rows[0]).getByText(t.defaultBadge)).toBeInTheDocument();
     expect(within(rows[1]).getByText(t.allCategories)).toBeInTheDocument();
     expect(within(rows[1]).queryByText(t.defaultBadge)).not.toBeInTheDocument();
+  });
+
+  it("shows the document fields the file of each template has", async () => {
+    renderAdmin();
+
+    const table = await screen.findByRole("table", { name: t.tableLabel });
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(within(rows[0]).getByText("Kod, Ad")).toBeInTheDocument();
+    expect(within(rows[1]).getByText(t.noFields)).toBeInTheDocument();
+    expect(screen.getByText(t.fieldsHelp)).toBeInTheDocument();
   });
 
   it("shows nothing but a notice to anyone who is not the administrator, and asks for nothing", () => {

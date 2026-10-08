@@ -182,6 +182,8 @@ model Template {
   fileType       FileType
   storageKey     String
   isDefault      Boolean  @default(false)
+  /// Document fields (content controls) found in the file when it was uploaded
+  fieldTags      String[] @default([])
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)

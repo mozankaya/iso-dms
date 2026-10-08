@@ -1,3 +1,5 @@
+import type { DocumentFieldTag } from './document-fields';
+
 /**
  * Administration of the organization's structure (PROJECT.md 6.9): departments and categories. The patterns and
  * limits live here so the API and the forms of the web app apply exactly the same rules.
@@ -104,6 +106,8 @@ export interface AdminTemplateDto {
   category: { id: string; name: string } | null;
   /** The one new documents start from when nothing else is chosen, per category and file type */
   isDefault: boolean;
+  /** The document fields (content controls) the file of the template has; empty for Excel and for files without any */
+  fields: DocumentFieldTag[];
   createdAt: string;
 }
 

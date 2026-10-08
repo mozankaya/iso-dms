@@ -152,6 +152,7 @@ describe('the overview', () => {
       fileType: 'DOCX',
       category: { id: categoryA, name: 'Kategori A' },
       isDefault: false,
+      fields: [],
       createdAt: expect.any(String),
     });
     expect(rows.map((row) => row.id)).not.toContain(foreignTemplateId);
@@ -366,7 +367,7 @@ describe('replacing the file', () => {
     const entries = (await auditOf(made.id)).filter((entry) => entry.action === 'TEMPLATE_FILE_REPLACED');
 
     expect(entries).toHaveLength(1);
-    expect(entries[0].metadata).toEqual({ name: made.name, fileType: 'DOCX', fileSize: content.length });
+    expect(entries[0].metadata).toEqual({ name: made.name, fileType: 'DOCX', fileSize: content.length, fields: [] });
   });
 });
 

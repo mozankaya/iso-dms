@@ -122,6 +122,10 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
       }
       break;
     }
+    case "REVISION_FIELDS_UPDATED": {
+      for (const key of Object.keys(changesOf(metadata))) parts.push(t.details.changedFields[key] ?? key);
+      break;
+    }
     case "DOCUMENT_REVIEWED":
       parts.push(text(metadata, "note"));
       break;

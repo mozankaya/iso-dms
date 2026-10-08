@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { AdminTemplateDto, FileType } from '@iso-dms/shared';
+import type { AdminTemplateDto, DocumentFieldTag, FileType } from '@iso-dms/shared';
 import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { findDocumentFields } from '../documents/document-fields/docx-fields';
 import { validateOfficeFile } from '../documents/office-file.validator';
 import { FILE_TYPE_INFO } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
@@ -16,6 +17,7 @@ const SELECT = {
   name: true,
   fileType: true,
   isDefault: true,
+  fieldTags: true,
   createdAt: true,
   categoryId: true,
   category: { select: { id: true, name: true } },
@@ -30,6 +32,7 @@ function toDto(row: Row): AdminTemplateDto {
     fileType: row.fileType,
     category: row.category,
     isDefault: row.isDefault,
+    fields: row.fieldTags as DocumentFieldTag[],
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -74,6 +77,7 @@ export class AdminTemplatesService {
     const { fileType } = await this.validate(file);
     const categoryId = dto.categoryId ?? null;
     const storageKey = this.newKey(user.organizationId, fileType);
+    const fieldTags = await this.fieldsOf(file!.buffer, fileType);
     // The file goes first; if the record cannot be written the orphan is removed again
     await this.storage.put(storageKey, file!.buffer, FILE_TYPE_INFO[fileType].mimeType);
 
@@ -84,7 +88,7 @@ export class AdminTemplatesService {
         await this.assertNameFree(tx, user.organizationId, dto.name, fileType, null);
 
         const row = await tx.template.create({
-          data: { organizationId: user.organizationId, categoryId, name: dto.name, fileType, storageKey, isDefault: dto.isDefault ?? false },
+          data: { organizationId: user.organizationId, categoryId, name: dto.name, fileType, storageKey, isDefault: dto.isDefault ?? false, fieldTags },
           select: SELECT,
         });
         if (row.isDefault) await this.unsetOtherDefaults(tx, user.organizationId, categoryId, fileType, row.id);
@@ -161,6 +165,7 @@ export class AdminTemplatesService {
   async replaceFile(user: AuthenticatedUser, id: string, file: Express.Multer.File | undefined, ipAddress: string | null): Promise<AdminTemplateDto> {
     const { fileType } = await this.validate(file);
     const storageKey = this.newKey(user.organizationId, fileType);
+    const fieldTags = await this.fieldsOf(file!.buffer, fileType);
     await this.storage.put(storageKey, file!.buffer, FILE_TYPE_INFO[fileType].mimeType);
 
     let oldKey: string;
@@ -173,7 +178,7 @@ export class AdminTemplatesService {
           throw new BadRequestException({ code: 'TEMPLATE_FILE_TYPE_MISMATCH', message: 'The file has to be of the same type as the template' });
         }
 
-        const row = await tx.template.update({ where: { id }, data: { storageKey }, select: SELECT });
+        const row = await tx.template.update({ where: { id }, data: { storageKey, fieldTags }, select: SELECT });
         await this.auditLogs.log(
           {
             organizationId: user.organizationId,
@@ -181,7 +186,7 @@ export class AdminTemplatesService {
             action: 'TEMPLATE_FILE_REPLACED',
             entityType: 'Template',
             entityId: id,
-            metadata: { name: row.name, fileType, fileSize: file!.buffer.length },
+            metadata: { name: row.name, fileType, fileSize: file!.buffer.length, fields: fieldTags },
             ipAddress,
           },
           tx,
@@ -249,6 +254,11 @@ export class AdminTemplatesService {
     if (!file) throw new BadRequestException({ code: 'FILE_REQUIRED', message: 'A file is required' });
     const maxBytes = Number(this.config.get('MAX_UPLOAD_MB', 25)) * 1024 * 1024;
     return { fileType: await validateOfficeFile(file, maxBytes) };
+  }
+
+  /** The document fields a Word template has (PROJECT.md 6.14); none for Excel, whose headers are another matter. */
+  private async fieldsOf(buffer: Buffer, fileType: FileType): Promise<DocumentFieldTag[]> {
+    return fileType === 'DOCX' ? findDocumentFields(buffer) : [];
   }
 
   private newKey(organizationId: string, fileType: FileType): string {

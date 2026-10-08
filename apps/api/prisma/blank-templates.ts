@@ -1,6 +1,7 @@
 import { mkdir, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import JSZip from 'jszip';
+import { buildStandardDocx } from './standard-template';
 
 const TEMPLATES_DIR = path.resolve(__dirname, '../templates');
 
@@ -59,4 +60,6 @@ export async function ensureBlankTemplateFiles(): Promise<void> {
   const xlsxPath = path.join(TEMPLATES_DIR, 'blank.xlsx');
   if (!(await exists(docxPath))) await writeFile(docxPath, await buildBlankDocx());
   if (!(await exists(xlsxPath))) await writeFile(xlsxPath, await buildBlankXlsx());
+  const standardPath = path.join(TEMPLATES_DIR, 'standard.docx');
+  if (!(await exists(standardPath))) await writeFile(standardPath, await buildStandardDocx());
 }

@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { canSubmitRevision, canViewRevision, canWriteInDepartment } from '../documents/document-access.policy';
+import { DocumentFieldsService } from '../documents/document-fields/document-fields.service';
 import { DocumentsService } from '../documents/documents.service';
 import { editSessionActive, EditSessionGate } from '../editor/edit-session-gate.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -29,6 +30,7 @@ export class ApprovalSubmissionService {
     private readonly documents: DocumentsService,
     private readonly notifier: ApprovalNotifier,
     private readonly notifications: NotificationsService,
+    private readonly fields: DocumentFieldsService,
   ) {}
 
   async submit(user: AuthenticatedUser, revisionId: string, ipAddress: string | null): Promise<DocumentDetailDto> {
@@ -50,6 +52,10 @@ export class ApprovalSubmissionService {
     // Whoever is editing, or whose last changes are still being saved, would lose them: the check comes before the
     // transaction because it calls another system.
     await this.editSessions.assertIdle(revision.id);
+
+    // What the approvers read is what is published: the fields of the file are made right now, before it is locked
+    // (PROJECT.md 6.14). A failure of storage stops the submission; a file without fields is left alone.
+    await this.fields.apply(revision.id, 'SUBMITTED', { userId: user.id, ipAddress });
 
     let notified: string[] = [];
     await this.prisma.$transaction(async (tx) => {

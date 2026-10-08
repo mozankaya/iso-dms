@@ -8,3 +8,4 @@ export * from './organization';
 export * from './users';
 export * from './notifications';
 export * from './review';
+export * from './document-fields';

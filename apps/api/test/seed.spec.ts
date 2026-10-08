@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { createPrismaClient } from '../src/prisma/create-prisma-client';
-import { SEED_CATEGORIES } from '../prisma/seed-data';
+import { SEED_CATEGORIES, SEED_TEMPLATES } from '../prisma/seed-data';
 
 const prisma = createPrismaClient();
 const apiRoot = path.resolve(__dirname, '..');
@@ -32,7 +32,7 @@ describe('seed', () => {
     expect(second).toEqual(first);
     expect(first.categories).toBe(SEED_CATEGORIES.length);
     expect(first.users).toBeGreaterThanOrEqual(1);
-    expect(first.templates).toBe(2);
+    expect(first.templates).toBe(SEED_TEMPLATES.length);
   });
 
   it('creates the admin user with a hashed password', async () => {

@@ -24,7 +24,9 @@ export const SEED_CATEGORIES = [
   },
 ];
 
+/** isDefault: whether it is the default of its file type in a new installation (existing ones are not changed) */
 export const SEED_TEMPLATES = [
-  { name: 'Boş Word Şablonu', fileType: 'DOCX', fileName: 'blank.docx' },
-  { name: 'Boş Excel Şablonu', fileType: 'XLSX', fileName: 'blank.xlsx' },
+  { name: 'Standart Antetli Word Şablonu', fileType: 'DOCX', fileName: 'standard.docx', isDefault: true },
+  { name: 'Boş Word Şablonu', fileType: 'DOCX', fileName: 'blank.docx', isDefault: false },
+  { name: 'Boş Excel Şablonu', fileType: 'XLSX', fileName: 'blank.xlsx', isDefault: true },
 ] as const;

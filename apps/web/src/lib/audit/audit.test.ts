@@ -220,4 +220,9 @@ describe("describeEntry", () => {
     expect(describe_("DOCUMENT_REVIEW_SETTINGS_CHANGED", { from: null, to: 12 })).toBe("12 ay");
     expect(describe_("DOCUMENT_REVIEW_SETTINGS_CHANGED", { from: 12, to: null })).toBe("Periyot kaldırıldı");
   });
+
+  it("describes the correction of the fields of a file by the fields that changed", () => {
+    expect(describe_("REVISION_FIELDS_UPDATED", { changes: { DOC_CODE: { from: "a", to: "b", count: 1 }, DOC_REVISION_NO: { from: "9", to: "0", count: 2 } } })).toBe("Kod · Revizyon No");
+    expect(describe_("REVISION_FIELDS_UPDATED", null)).toBe("");
+  });
 });

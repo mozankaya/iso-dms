@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+import { DocumentFieldsModule } from '../documents/document-fields/document-fields.module';
 import { DocumentsModule } from '../documents/documents.module';
 import { EditorModule } from '../editor/editor.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -14,7 +15,7 @@ import { ApprovalsController } from './approvals.controller';
 import { ApprovalsService } from './approvals.service';
 
 @Module({
-  imports: [AuditLogsModule, DocumentsModule, EditorModule, NotificationsModule, PdfModule, RevisionsModule],
+  imports: [AuditLogsModule, DocumentFieldsModule, DocumentsModule, EditorModule, NotificationsModule, PdfModule, RevisionsModule],
   controllers: [ApprovalsController],
   providers: [ApprovalNotifier, ApprovalSubmissionService, ApprovalDecisionService, ApprovalsService, DocumentWithdrawalService, WithdrawalRequestService],
   exports: [ApprovalsService],

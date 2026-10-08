@@ -5,6 +5,7 @@ import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { canStartRevision, canWriteInDepartment, visibleDocumentWhere } from '../documents/document-access.policy';
+import { DocumentFieldsService } from '../documents/document-fields/document-fields.service';
 import { DocumentsService } from '../documents/documents.service';
 import { buildRevisionKey } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
@@ -31,6 +32,7 @@ export class RevisionStartingService {
     private readonly storage: StorageService,
     private readonly auditLogs: AuditLogsService,
     private readonly documents: DocumentsService,
+    private readonly fields: DocumentFieldsService,
   ) {}
 
   async start(user: AuthenticatedUser, documentId: string, dto: StartRevisionDto, ipAddress: string | null): Promise<DocumentDetailDto> {
@@ -81,6 +83,7 @@ export class RevisionStartingService {
       throw new NotFoundException({ code: 'REVISION_FILE_MISSING', message: 'The file of the revision in force is missing from storage' });
     }
 
+    let revisionId = '';
     try {
       await this.prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM "Document" WHERE id = ${documentId} FOR UPDATE`;
@@ -109,6 +112,7 @@ export class RevisionStartingService {
             preparedById: user.id,
           },
         });
+        revisionId = revision.id;
         await this.auditLogs.log(
           {
             organizationId: user.organizationId,
@@ -128,6 +132,9 @@ export class RevisionStartingService {
       });
       throw error;
     }
+
+    // The copy carries the numbers of the revision in force: the new draft gets its own (PROJECT.md 6.14)
+    await this.fields.applyBestEffort(revisionId, 'REVISION_STARTED');
 
     return this.documents.findOne(user, documentId);
   }
