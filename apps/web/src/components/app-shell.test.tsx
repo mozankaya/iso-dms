@@ -165,3 +165,19 @@ describe("AppShell feedback", () => {
     expect(screen.getByRole("link", { name: tr.nav.feedback })).toHaveAttribute("aria-current", "page");
   });
 });
+
+describe("AppShell administration", () => {
+  it("links the departments and categories for the administrator", () => {
+    role = "ADMIN";
+    renderShell();
+    expect(screen.getByRole("link", { name: tr.nav.departments })).toHaveAttribute("href", "/admin/departments");
+    expect(screen.getByRole("link", { name: tr.nav.categoriesAdmin })).toHaveAttribute("href", "/admin/categories");
+  });
+
+  it.each(["QUALITY_MANAGER", "APPROVER", "EDITOR", "READER"])("does not link them for %s", (who) => {
+    role = who;
+    renderShell();
+    expect(screen.queryByRole("link", { name: tr.nav.departments })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: tr.nav.categoriesAdmin })).not.toBeInTheDocument();
+  });
+});

@@ -24,6 +24,11 @@ export function actionLabel(action: string): string {
   return action in t.actions ? t.actions[action as AuditAction] : action;
 }
 
+function changesOf(metadata: Record<string, unknown> | null | undefined): Record<string, { to?: unknown }> {
+  const changes = metadata?.changes;
+  return changes && typeof changes === "object" ? (changes as Record<string, { to?: unknown }>) : {};
+}
+
 /** One short Turkish line with the facts that matter for an entry, built from what the API stored. */
 export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): string {
   const { metadata } = entry;
@@ -81,6 +86,24 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
       parts.push(reason(text(metadata, "reason")));
       parts.push(text(metadata, "email"));
       break;
+    case "DEPARTMENT_CREATED":
+    case "CATEGORY_CREATED":
+      parts.push(text(metadata, "name"));
+      parts.push(text(metadata, "code") ?? text(metadata, "codePrefix"));
+      break;
+    case "DEPARTMENT_UPDATED":
+    case "CATEGORY_UPDATED": {
+      const changes = changesOf(metadata);
+      parts.push(text(metadata, "code") ?? text(metadata, "codePrefix"));
+      for (const key of Object.keys(changes)) {
+        if (key === "isActive") {
+          parts.push(changes[key].to === true ? t.details.activated : t.details.deactivated);
+        } else {
+          parts.push(t.details.changedFields[key] ?? key);
+        }
+      }
+      break;
+    }
     case "REFRESH_TOKEN_REUSE_DETECTED":
       parts.push(t.details.sessionsClosed);
       break;

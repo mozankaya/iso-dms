@@ -39,3 +39,8 @@ export function canCreateDocuments(role: UserRole | undefined): boolean {
 export function isDepartmentBound(role: UserRole | undefined): boolean {
   return role !== undefined && DEPARTMENT_BOUND_ROLES.includes(role);
 }
+
+/** PROJECT.md 6.9: the structure of the organization (departments, categories, users, templates) is the administrator's. */
+export function canAdminister(role: UserRole | undefined): boolean {
+  return role === "ADMIN";
+}

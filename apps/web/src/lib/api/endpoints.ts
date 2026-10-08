@@ -1,8 +1,12 @@
 import type {
+  AdminCategoryDto,
+  AdminDepartmentDto,
   AuditLogPage,
   AuditLogQuery,
   AuthResponseDto,
   CategoryDto,
+  CreateCategoryRequest,
+  CreateDepartmentRequest,
   CreateDocumentRequest,
   DashboardStatsDto,
   DepartmentDto,
@@ -21,6 +25,8 @@ import type {
   RevisionHistoryItemDto,
   SentFeedbackDto,
   TemplateDto,
+  UpdateCategoryRequest,
+  UpdateDepartmentRequest,
 } from "@iso-dms/shared";
 import { DEFAULT_PAGE_SIZE } from "@iso-dms/shared";
 import { apiFetch, apiFetchPublic } from "./client";
@@ -190,4 +196,28 @@ export function cancelRevision(revisionId: string, reason: string): Promise<Docu
 
 export function getPendingApprovals(page = 1): Promise<PaginatedDto<PendingApprovalDto>> {
   return apiFetch<PaginatedDto<PendingApprovalDto>>(`/approvals/pending?page=${page}&pageSize=${DEFAULT_PAGE_SIZE}`);
+}
+
+export function getAdminDepartments(): Promise<AdminDepartmentDto[]> {
+  return apiFetch<AdminDepartmentDto[]>("/departments/overview");
+}
+
+export function createDepartment(request: CreateDepartmentRequest): Promise<AdminDepartmentDto> {
+  return apiFetch<AdminDepartmentDto>("/departments", { method: "POST", body: JSON.stringify(request) });
+}
+
+export function updateDepartment(id: string, request: UpdateDepartmentRequest): Promise<AdminDepartmentDto> {
+  return apiFetch<AdminDepartmentDto>(`/departments/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(request) });
+}
+
+export function getAdminCategories(): Promise<AdminCategoryDto[]> {
+  return apiFetch<AdminCategoryDto[]>("/categories/overview");
+}
+
+export function createCategory(request: CreateCategoryRequest): Promise<AdminCategoryDto> {
+  return apiFetch<AdminCategoryDto>("/categories", { method: "POST", body: JSON.stringify(request) });
+}
+
+export function updateCategory(id: string, request: UpdateCategoryRequest): Promise<AdminCategoryDto> {
+  return apiFetch<AdminCategoryDto>(`/categories/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(request) });
 }

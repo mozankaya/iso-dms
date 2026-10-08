@@ -165,4 +165,23 @@ describe("describeEntry", () => {
     expect(describe_("REVISION_SAVED", null)).toBe(d.savedOnClose);
     expect(describe_("DOCUMENT_PUBLISHED", { firstPublication: "yes", previousRevisionNo: "1" })).toBe("");
   });
+
+  it("names what was created", () => {
+    expect(describe_("DEPARTMENT_CREATED", { code: "KK", name: "Kalite" })).toBe("Kalite · KK");
+    expect(describe_("CATEGORY_CREATED", { codePrefix: "PR", name: "Prosedürler", slug: "prosedurler" })).toBe("Prosedürler · PR");
+  });
+
+  it("lists what was changed, and says whether it was taken out of use", () => {
+    expect(
+      describe_("DEPARTMENT_UPDATED", { code: "KK", changes: { name: { from: "A", to: "B" }, isActive: { from: true, to: false } } }),
+    ).toBe("KK · Ad · Kullanımdan kaldırıldı");
+    expect(describe_("CATEGORY_UPDATED", { codePrefix: "PR", changes: { sortOrder: { from: 1, to: 2 }, isActive: { from: false, to: true } } })).toBe(
+      "PR · Sıra · Kullanıma açıldı",
+    );
+  });
+
+  it("copes with an update without changes", () => {
+    expect(describe_("DEPARTMENT_UPDATED", { code: "KK" })).toBe("KK");
+    expect(describe_("DEPARTMENT_UPDATED", null)).toBe("");
+  });
 });

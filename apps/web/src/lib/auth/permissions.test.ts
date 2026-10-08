@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canCreateDocuments, canDecideApprovals, canReadFeedback, canViewAuditLog, canViewWithdrawnList, isDepartmentBound } from "./permissions";
+import { canAdminister, canCreateDocuments, canDecideApprovals, canReadFeedback, canViewAuditLog, canViewWithdrawnList, isDepartmentBound } from "./permissions";
 
 describe("canCreateDocuments", () => {
   it.each(["EDITOR", "APPROVER", "QUALITY_MANAGER", "ADMIN"] as const)("allows %s", (role) => {
@@ -61,5 +61,15 @@ describe("canReadFeedback", () => {
 
   it.each(["READER", "EDITOR", "APPROVER", undefined] as const)("denies %s", (role) => {
     expect(canReadFeedback(role)).toBe(false);
+  });
+});
+
+describe("canAdminister", () => {
+  it("allows only the administrator", () => {
+    expect(canAdminister("ADMIN")).toBe(true);
+  });
+
+  it.each(["QUALITY_MANAGER", "APPROVER", "EDITOR", "READER", undefined] as const)("denies %s", (role) => {
+    expect(canAdminister(role)).toBe(false);
   });
 });

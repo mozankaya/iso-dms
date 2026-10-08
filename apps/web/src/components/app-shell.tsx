@@ -1,14 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardCheck, FilePlus2, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
+import { Building2, ClipboardCheck, FilePlus2, FolderCog, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
 import { getCategories, getPendingApprovals } from "@/lib/api/endpoints";
-import { canDecideApprovals, canReadFeedback, canViewAuditLog, canViewWithdrawnList } from "@/lib/auth/permissions";
+import { canAdminister, canDecideApprovals, canReadFeedback, canViewAuditLog, canViewWithdrawnList } from "@/lib/auth/permissions";
 import { useRequireAuth } from "@/lib/auth/use-require-auth";
 import { tr } from "@/lib/i18n/tr";
 import { cn } from "@/lib/utils";
@@ -153,6 +153,18 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <MessageSquare className="h-4 w-4 shrink-0" aria-hidden="true" />
                   {tr.nav.feedback}
                 </NavLink>
+              )}
+              {canAdminister(user?.role) && (
+                <>
+                  <NavLink href="/admin/departments" active={pathname === "/admin/departments"} onNavigate={closeMenu}>
+                    <Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {tr.nav.departments}
+                  </NavLink>
+                  <NavLink href="/admin/categories" active={pathname === "/admin/categories"} onNavigate={closeMenu}>
+                    <FolderCog className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {tr.nav.categoriesAdmin}
+                  </NavLink>
+                </>
               )}
             </>
           )}

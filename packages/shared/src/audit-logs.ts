@@ -14,6 +14,10 @@ export const AUDIT_ACTIONS = [
   'DOCUMENT_PUBLISHED',
   'WITHDRAWAL_REQUESTED',
   'DOCUMENT_WITHDRAWN',
+  'DEPARTMENT_CREATED',
+  'DEPARTMENT_UPDATED',
+  'CATEGORY_CREATED',
+  'CATEGORY_UPDATED',
   'FEEDBACK_SENT',
   'FEEDBACK_RESOLVED',
   'FEEDBACK_REOPENED',
@@ -29,7 +33,7 @@ export const AUDIT_ACTIONS = [
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
-export const AUDIT_ENTITY_TYPES = ['Document', 'Revision', 'User'] as const;
+export const AUDIT_ENTITY_TYPES = ['Document', 'Revision', 'User', 'Department', 'Category'] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
 export interface AuditLogUserDto {
