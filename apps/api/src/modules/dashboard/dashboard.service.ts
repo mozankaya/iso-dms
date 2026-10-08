@@ -8,6 +8,9 @@ import { publicationWhere, windowStart } from '../lists/publication-where';
 /** Roles that hold approval steps (PROJECT.md 6.3). */
 const APPROVAL_ROLES = ['APPROVER', 'QUALITY_MANAGER', 'ADMIN'];
 
+/** Roles that read feedback (PROJECT.md 6.8). */
+const FEEDBACK_ROLES = ['QUALITY_MANAGER', 'ADMIN'];
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -25,15 +28,16 @@ export class DashboardService {
     const mayWithdrawn = user.role !== 'READER';
     const mayDecide = APPROVAL_ROLES.includes(user.role);
 
-    const [totalDocuments, newlyPublished, revised, withdrawn, awaiting] = await Promise.all([
+    const [totalDocuments, newlyPublished, revised, withdrawn, awaiting, openFeedback] = await Promise.all([
       // Published documents are visible to everybody
       this.prisma.document.count({ where: { organizationId: user.organizationId, status: 'PUBLISHED' } }),
       this.prisma.document.count({ where: publicationWhere(user, 'new', since) }),
       this.prisma.document.count({ where: publicationWhere(user, 'revised', since) }),
       mayWithdrawn ? this.prisma.document.count({ where: publicationWhere(user, 'withdrawn', since) }) : null,
       mayDecide ? this.approvals.listPending(user, { page: 1, pageSize: 1 }) : null,
+      FEEDBACK_ROLES.includes(user.role) ? this.prisma.feedback.count({ where: { organizationId: user.organizationId, isResolved: false } }) : null,
     ]);
 
-    return { totalDocuments, newlyPublished, revised, withdrawn, awaitingApproval: awaiting?.total ?? null };
+    return { totalDocuments, newlyPublished, revised, withdrawn, awaitingApproval: awaiting?.total ?? null, openFeedback };
   }
 }

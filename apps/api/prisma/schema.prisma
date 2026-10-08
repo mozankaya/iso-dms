@@ -115,7 +115,8 @@ model User {
   approvedRevisions Revision[]        @relation("RevisionApprovedBy")
   documentRequests  DocumentRequest[]
   approvalSteps     ApprovalStep[]
-  feedbacks         Feedback[]
+  feedbacks         Feedback[]        @relation("FeedbackAuthor")
+  resolvedFeedbacks Feedback[]        @relation("FeedbackResolver")
   auditLogs         AuditLog[]
   refreshTokens     RefreshToken[]
 
@@ -232,6 +233,7 @@ model Revision {
 
   @@unique([documentId, revisionNo])
   @@index([organizationId, documentId])
+  feedbacks Feedback[]
 }
 
 model DocumentRequest {
@@ -276,19 +278,27 @@ model ApprovalStep {
 }
 
 model Feedback {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   organizationId String
   documentId     String
+  /// The revision in force when the feedback was sent: what it is about
+  revisionId     String?
   userId         String
   message        String
-  isResolved     Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  isResolved     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  /// Who closed it, when, and how it was handled (set while isResolved; kept for the record when it is reopened)
+  resolvedAt     DateTime?
+  resolvedById   String?
+  resolutionNote String?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   document     Document     @relation(fields: [documentId], references: [id], onDelete: Restrict)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  revision     Revision?    @relation(fields: [revisionId], references: [id], onDelete: Restrict)
+  user         User         @relation("FeedbackAuthor", fields: [userId], references: [id], onDelete: Restrict)
+  resolvedBy   User?        @relation("FeedbackResolver", fields: [resolvedById], references: [id], onDelete: Restrict)
 
-  @@index([organizationId, isResolved])
+  @@index([organizationId, isResolved, createdAt])
   @@index([documentId])
 }
 

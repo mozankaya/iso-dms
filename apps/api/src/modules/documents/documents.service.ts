@@ -128,6 +128,8 @@ export class DocumentsService {
       approval: approval ? toApprovalRequestDto(user, approval, document) : null,
       canStartRevision: canStartRevision(user, document, hasOpenRevision, pendingWithdrawal !== null),
       canRequestWithdrawal: canRequestWithdrawal(user, document, hasOpenRevision, pendingWithdrawal !== null),
+      // Everybody who sees a document in force may say something about it
+      canSendFeedback: document.status === 'PUBLISHED',
     };
   }
 

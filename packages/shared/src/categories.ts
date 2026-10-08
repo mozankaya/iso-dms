@@ -24,4 +24,6 @@ export interface DashboardStatsDto {
   withdrawn: number | null;
   /** Approval steps waiting for the user; null unless the role holds approval steps */
   awaitingApproval: number | null;
+  /** Feedback nobody has closed yet; null unless the role reads feedback (quality managers, administrators) */
+  openFeedback: number | null;
 }

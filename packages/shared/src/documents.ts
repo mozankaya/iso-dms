@@ -142,6 +142,8 @@ export interface DocumentDetailDto extends DocumentListItemDto {
   canStartRevision: boolean;
   /** Whether the current user may ask for this (published) document to be withdrawn */
   canRequestWithdrawal: boolean;
+  /** Whether feedback can be sent about this document (it is in force) */
+  canSendFeedback: boolean;
 }
 
 export interface StartRevisionRequest {
