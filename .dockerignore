@@ -1,0 +1,18 @@
+# Keep the build context small and free of secrets and local state
+**/node_modules
+**/dist
+**/.next
+**/*.tsbuildinfo
+**/coverage
+.git
+.env
+.env.*
+!.env.example
+!.env.production.example
+docker-data
+backups
+apps/api/src/generated
+.claude
+.vscode
+.idea
+**/*.log

@@ -1,0 +1,37 @@
+# The same proxy for an internal network: no public DNS needed, the certificates come from Caddy's own authority.
+# Browsers must trust its root certificate once (docs: copy it from the caddy-data volume, see ops/README).
+{
+	local_certs
+}
+
+{$APP_HOST} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	request_body {
+		max_size 60MB
+	}
+
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+{$DOCS_HOST} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	reverse_proxy onlyoffice:80
+}

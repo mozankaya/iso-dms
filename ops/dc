@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# docker compose for the production stack: ops/dc up -d --build, ops/dc ps, ops/dc logs -f api ...
+set -euo pipefail
+cd "$(dirname "$0")/.."
+[ -f .env.production ] || { echo ".env.production is missing: run ops/generate-secrets.sh first" >&2; exit 1; }
+exec docker compose --env-file .env.production -f docker-compose.prod.yml "$@"

@@ -1,0 +1,37 @@
+# Reverse proxy with certificates from Let's Encrypt. The names in APP_HOST and DOCS_HOST have to be public DNS
+# names that reach this server on ports 80 and 443.
+{$APP_HOST} {
+	encode zstd gzip
+
+	# Nobody has a reason to put the application in a frame
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Documents are at most MAX_UPLOAD_MB (25); the rest of the body is headroom for the form around the file
+	request_body {
+		max_size 60MB
+	}
+
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+# The document server (the editor is loaded from here into the application)
+{$DOCS_HOST} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	# Caddy adds X-Forwarded-Proto and -Host, which the document server needs to build its own addresses
+	reverse_proxy onlyoffice:80
+}
