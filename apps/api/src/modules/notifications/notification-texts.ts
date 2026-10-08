@@ -55,3 +55,33 @@ export function requestRejected(input: DocumentRef & { kind: RequestKind; commen
     link: `/documents/${input.documentId}`,
   };
 }
+
+export type ReviewReminderStage = 'IN_30_DAYS' | 'IN_7_DAYS' | 'DUE' | 'OVERDUE';
+
+/** The review of a document is near, due, or overdue (PROJECT.md 6.5); `date` is the due date as dd.MM.yyyy. */
+export function reviewDue(
+  input: DocumentRef & { stage: ReviewReminderStage; date: string; overdueDays: number; ownerName: string },
+): NotificationContent {
+  const what = `${input.code} ${input.title}`;
+  const owner = ` Sorumlu: ${input.ownerName}.`;
+  const action = ' Doküman hâlâ yürürlükte; gözden geçirildi olarak işaretleyin ya da revizyon başlatın.';
+  const byStage: Record<ReviewReminderStage, { title: string; body: string }> = {
+    IN_30_DAYS: {
+      title: `Gözden geçirme tarihi yaklaşıyor: ${input.code}`,
+      body: `${what} dokümanının gözden geçirme tarihi ${input.date} (30 gün içinde).${owner}`,
+    },
+    IN_7_DAYS: {
+      title: `Gözden geçirme tarihi bir haftadan az: ${input.code}`,
+      body: `${what} dokümanının gözden geçirme tarihi ${input.date} (7 gün içinde).${owner}`,
+    },
+    DUE: {
+      title: `Gözden geçirme zamanı geldi: ${input.code}`,
+      body: `${what} dokümanının gözden geçirme tarihi ${input.date}.${owner}${action}`,
+    },
+    OVERDUE: {
+      title: `Gözden geçirme gecikti: ${input.code}`,
+      body: `${what} dokümanının gözden geçirme tarihi ${input.date} geçti (${input.overdueDays} gün).${owner}${action}`,
+    },
+  };
+  return { type: 'REVIEW_DUE', ...byStage[input.stage], link: `/documents/${input.documentId}` };
+}

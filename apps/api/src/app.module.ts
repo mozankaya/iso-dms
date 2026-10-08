@@ -17,6 +17,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { EditorModule } from './modules/editor/editor.module';
+import { ReviewRemindersModule } from './modules/review-reminders/review-reminders.module';
 import { RevisionsModule } from './modules/revisions/revisions.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { UsersModule } from './modules/users/users.module';
@@ -39,6 +40,7 @@ import { PrismaModule } from './prisma/prisma.module';
     StorageModule,
     AuditLogsModule,
     NotificationsModule,
+    ReviewRemindersModule,
     AuthModule,
     CategoriesModule,
     DashboardModule,
