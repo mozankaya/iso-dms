@@ -12,7 +12,7 @@ export const DOCUMENT_LIST_SELECT = {
   firstPublishedAt: true,
   revisedAt: true,
   department: { select: { id: true, name: true, code: true } },
-  currentRevision: { select: { revisionNo: true } },
+  currentRevision: { select: { revisionNo: true, pdfStatus: true } },
 } satisfies Prisma.DocumentSelect;
 
 export type DocumentListRow = Prisma.DocumentGetPayload<{ select: typeof DOCUMENT_LIST_SELECT }>;
@@ -29,6 +29,7 @@ export function toDocumentListItem(document: DocumentListRow, canEdit: boolean):
     firstPublishedAt: document.firstPublishedAt?.toISOString() ?? null,
     revisedAt: document.revisedAt?.toISOString() ?? null,
     revisionNo: document.currentRevision?.revisionNo ?? null,
+    pdfStatus: document.currentRevision?.pdfStatus ?? null,
     canEdit,
   };
 }

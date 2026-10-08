@@ -3,6 +3,10 @@ import type { UserRole } from './auth';
 export const DOCUMENT_STATUSES = ['DRAFT', 'IN_REVIEW', 'PUBLISHED', 'WITHDRAWN'] as const;
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
 
+/** State of the PDF copy of a revision (PROJECT.md 6.12) */
+export const PDF_STATUSES = ['NONE', 'PENDING', 'READY', 'FAILED'] as const;
+export type PdfStatus = (typeof PDF_STATUSES)[number];
+
 export const FILE_TYPES = ['DOCX', 'XLSX'] as const;
 export type FileType = (typeof FILE_TYPES)[number];
 
@@ -48,6 +52,8 @@ export interface DocumentListItemDto {
   revisedAt: string | null;
   /** Revision number of the currently valid revision, null if never published */
   revisionNo: number | null;
+  /** State of the PDF copy of the revision in force, null if never published */
+  pdfStatus: PdfStatus | null;
   /** Whether the current user may edit this document's open draft */
   canEdit: boolean;
 }
@@ -114,6 +120,8 @@ export interface RevisionHistoryItemDto extends RevisionSummaryDto {
   createdAt: string;
   changeSummary: string | null;
   fileSize: number;
+  /** State of the PDF copy of this revision */
+  pdfStatus: PdfStatus;
   /** Whether the current user may edit this revision */
   canEdit: boolean;
 }

@@ -1,6 +1,7 @@
 import type { DocumentStatus, RevisionHistoryItemDto } from "@iso-dms/shared";
 import Link from "next/link";
 import { DownloadButton } from "@/components/documents/download-button";
+import { PdfDownload } from "@/components/documents/pdf-download";
 import { RevisionStatusBadge } from "@/components/documents/status-badge";
 import { Card } from "@/components/ui/card";
 import { downloadPath } from "@/lib/api/endpoints";
@@ -20,10 +21,12 @@ function RevisionActions({
   documentId,
   code,
   revision,
+  canRequestPdf,
 }: {
   documentId: string;
   code: string;
   revision: RevisionHistoryItemDto;
+  canRequestPdf: boolean;
 }) {
   const open = revision.canEdit ? tr.detail.edit : tr.detail.view;
   return (
@@ -41,6 +44,19 @@ function RevisionActions({
         fallbackName={`${code} (Rev ${revision.revisionNo})`}
         ariaLabel={`${tr.detail.download} (${t.revision(revision.revisionNo)})`}
       />
+      {/* Only a revision that was put in force has (or can get) a PDF copy */}
+      {revision.publishedAt !== null && (
+        <PdfDownload
+          variant="ghost"
+          status={revision.pdfStatus}
+          path={downloadPath.revisionPdf(revision.id)}
+          fallbackName={`${code} (Rev ${revision.revisionNo})`}
+          revisionId={revision.id}
+          documentId={documentId}
+          canRequest={canRequestPdf}
+          ariaLabel={`${tr.pdf.download} (${t.revision(revision.revisionNo)})`}
+        />
+      )}
     </span>
   );
 }
@@ -50,11 +66,14 @@ export function RevisionHistory({
   code,
   documentStatus,
   revisions,
+  canRequestPdf = false,
 }: {
   documentId: string;
   code: string;
   documentStatus: DocumentStatus;
   revisions: RevisionHistoryItemDto[];
+  /** The user may ask for a PDF copy that is missing */
+  canRequestPdf?: boolean;
 }) {
   const documentWithdrawn = documentStatus === "WITHDRAWN";
   if (revisions.length === 0) {
@@ -90,7 +109,7 @@ export function RevisionHistory({
                 <td className="px-4 py-3">{revision.approvedBy?.fullName ?? tr.detail.notSet}</td>
                 <td className="px-4 py-3">{revision.changeSummary ?? tr.detail.notSet}</td>
                 <td className="px-4 py-3">
-                  <RevisionActions documentId={documentId} code={code} revision={revision} />
+                  <RevisionActions documentId={documentId} code={code} revision={revision} canRequestPdf={canRequestPdf} />
                 </td>
               </tr>
             ))}
@@ -120,7 +139,7 @@ export function RevisionHistory({
                 <dt className="text-muted">{t.columns.changeSummary}</dt>
                 <dd>{revision.changeSummary ?? tr.detail.notSet}</dd>
               </dl>
-              <RevisionActions documentId={documentId} code={code} revision={revision} />
+              <RevisionActions documentId={documentId} code={code} revision={revision} canRequestPdf={canRequestPdf} />
             </Card>
           </li>
         ))}

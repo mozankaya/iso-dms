@@ -40,6 +40,7 @@ export const AUDIT_ACTIONS = [
   'REVISION_DOWNLOADED',
   'REVISION_PDF_GENERATED',
   'REVISION_PDF_FAILED',
+  'REVISION_PDF_REQUESTED',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

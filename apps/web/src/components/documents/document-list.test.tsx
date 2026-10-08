@@ -42,6 +42,7 @@ function item(overrides: Partial<DocumentListItemDto> = {}): DocumentListItemDto
     firstPublishedAt: "2025-01-10T09:00:00.000Z",
     revisedAt: "2025-06-01T09:00:00.000Z",
     revisionNo: 2,
+    pdfStatus: "READY",
     canEdit: false,
     ...overrides,
   };

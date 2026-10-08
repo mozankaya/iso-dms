@@ -12,6 +12,7 @@ export function documentListItem(overrides: Partial<DocumentListItemDto> = {}): 
     firstPublishedAt: "2025-01-10T09:00:00.000Z",
     revisedAt: "2025-06-01T09:00:00.000Z",
     revisionNo: 2,
+    pdfStatus: "READY",
     canEdit: false,
     ...overrides,
   };
@@ -53,6 +54,7 @@ export function revisionRow(overrides: Partial<RevisionHistoryItemDto> = {}): Re
     createdAt: "2025-05-20T09:00:00.000Z",
     changeSummary: "Madde 3 güncellendi",
     fileSize: 24576,
+    pdfStatus: "READY",
     canEdit: false,
     ...overrides,
   };

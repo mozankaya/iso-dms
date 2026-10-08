@@ -4,8 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { EditorModule } from '../editor/editor.module';
 import { PDF_QUEUE } from './pdf.constants';
+import { PdfController } from './pdf.controller';
 import { PdfProcessor } from './pdf.processor';
 import { PdfQueueService } from './pdf-queue.service';
+import { PdfRequestService } from './pdf-request.service';
 import { RevisionPdfService } from './revision-pdf.service';
 
 // Evaluated at import time (like the login rate limit), so tests can switch the queue off before the app loads
@@ -43,7 +45,8 @@ const workerProviders: Provider[] = WORKER_ENABLED ? [PdfProcessor] : [];
  */
 @Module({
   imports: [AuditLogsModule, EditorModule, ...queueImports],
-  providers: [RevisionPdfService, PdfQueueService, ...workerProviders],
+  controllers: [PdfController],
+  providers: [RevisionPdfService, PdfQueueService, PdfRequestService, ...workerProviders],
   exports: [RevisionPdfService, PdfQueueService],
 })
 export class PdfModule {}

@@ -86,7 +86,7 @@ export class RevisionPdfService {
         const checksum = createHash('sha256').update(pdf).digest('hex');
         await tx.revision.update({
           where: { id: revisionId },
-          data: { pdfStorageKey: storageKey, pdfStatus: 'READY', pdfChecksum: checksum, pdfGeneratedAt: new Date(), pdfFailureReason: null },
+          data: { pdfStorageKey: storageKey, pdfStatus: 'READY', pdfChecksum: checksum, pdfFileSize: pdf.length, pdfGeneratedAt: new Date(), pdfFailureReason: null },
         });
         await this.auditLogs.log(
           {

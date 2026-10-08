@@ -86,6 +86,8 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
     case "REVISION_PDF_GENERATED":
       parts.push(formatFileSize(number(metadata, "fileSize")));
       break;
+    case "REVISION_PDF_REQUESTED":
+      break;
     case "REVISION_PDF_FAILED":
       parts.push(reason(text(metadata, "reason")));
       break;

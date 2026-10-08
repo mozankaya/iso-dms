@@ -11,6 +11,7 @@ import { ApprovalPanel } from "@/components/documents/approval-panel";
 import { CancelRevisionButton } from "@/components/documents/cancel-revision-button";
 import { DocumentHistory } from "@/components/audit/document-history";
 import { DownloadButton } from "@/components/documents/download-button";
+import { PdfDownload } from "@/components/documents/pdf-download";
 import { RevisionHistory } from "@/components/documents/revision-history";
 import { RequestWithdrawalButton } from "@/components/documents/request-withdrawal-button";
 import { StartRevisionButton } from "@/components/documents/start-revision-button";
@@ -21,7 +22,7 @@ import { Card } from "@/components/ui/card";
 import { ApiError } from "@/lib/api/client";
 import { downloadPath, getDocument, getRevisions } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth/auth-context";
-import { canViewAuditLog } from "@/lib/auth/permissions";
+import { canRequestPdf, canViewAuditLog } from "@/lib/auth/permissions";
 import { formatDate } from "@/lib/format";
 import { tr } from "@/lib/i18n/tr";
 
@@ -154,6 +155,16 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
               </Link>
             )}
             {doc.currentRevisionId && doc.status !== "WITHDRAWN" && <DownloadButton path={downloadPath.current(doc.id)} fallbackName={doc.code} />}
+            {doc.currentRevisionId && doc.status !== "WITHDRAWN" && doc.pdfStatus && (
+              <PdfDownload
+                status={doc.pdfStatus}
+                path={downloadPath.currentPdf(doc.id)}
+                fallbackName={doc.code}
+                revisionId={doc.currentRevisionId}
+                documentId={doc.id}
+                canRequest={canRequestPdf(user?.role)}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -185,7 +196,7 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
             </Button>
           </div>
         )}
-        {revisions.isSuccess && <RevisionHistory documentId={doc.id} code={doc.code} documentStatus={doc.status} revisions={revisions.data} />}
+        {revisions.isSuccess && <RevisionHistory documentId={doc.id} code={doc.code} documentStatus={doc.status} revisions={revisions.data} canRequestPdf={canRequestPdf(user?.role)} />}
       </section>
 
       {doc.canSendFeedback && <FeedbackForm documentId={doc.id} />}

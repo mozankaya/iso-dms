@@ -27,9 +27,9 @@ vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => ({ status: "authenticated", user: { id: "u1", role }, login: vi.fn(), logout: vi.fn() }),
 }));
 vi.mock("@/components/documents/download-button", () => ({
-  DownloadButton: ({ path }: { path: string }) => (
+  DownloadButton: ({ path, label }: { path: string; label?: string }) => (
     <button type="button" data-path={path}>
-      {tr.detail.download}
+      {label ?? tr.detail.download}
     </button>
   ),
 }));
@@ -133,6 +133,43 @@ describe("DocumentDetail", () => {
       const edit = screen.getByRole("link", { name: t.edit });
       expect(edit).toHaveAttribute("href", "/documents/doc-1/edit");
       expect(documentDownload()).toBeDefined();
+    });
+
+    it("offers the PDF copy of the revision in force next to the file itself", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      const pdf = screen.queryAllByRole("button", { name: tr.pdf.download }).find((button) => button.dataset.path === "/documents/doc-1/download?format=pdf");
+      expect(pdf).toBeDefined();
+    });
+
+    it("says the copy is being made, and leaves a failed one to the quality management", async () => {
+      getDocument.mockResolvedValue(documentDetail({ pdfStatus: "PENDING" }));
+      const waiting = renderDetail();
+      expect(await screen.findByText(tr.pdf.pending)).toBeInTheDocument();
+      waiting.unmount();
+
+      getDocument.mockResolvedValue(documentDetail({ pdfStatus: "FAILED" }));
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+      expect(screen.queryByText(tr.pdf.failed)).not.toBeInTheDocument();
+    });
+
+    it("lets a quality manager ask for a failed copy again", async () => {
+      role = "QUALITY_MANAGER";
+      getDocument.mockResolvedValue(documentDetail({ pdfStatus: "FAILED" }));
+      renderDetail();
+
+      expect(await screen.findByText(tr.pdf.failed)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: tr.pdf.request })).toBeInTheDocument();
+    });
+
+    it("offers no PDF for a withdrawn document", async () => {
+      getDocument.mockResolvedValue(documentDetail({ status: "WITHDRAWN" }));
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+
+      expect(screen.queryAllByRole("button", { name: tr.pdf.download }).find((button) => button.dataset.path === "/documents/doc-1/download?format=pdf")).toBeUndefined();
     });
 
     const draftDetail = (overrides = {}) =>

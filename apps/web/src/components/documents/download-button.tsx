@@ -13,12 +13,17 @@ export function DownloadButton({
   fallbackName,
   ariaLabel,
   variant = "outline",
+  label,
+  busyLabel,
 }: {
   path: string;
   /** Used when the server does not send a file name */
   fallbackName: string;
   ariaLabel?: string;
   variant?: "outline" | "ghost";
+  /** Defaults to "İndir"; the PDF copy is just "PDF" */
+  label?: string;
+  busyLabel?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +44,7 @@ export function DownloadButton({
     <span className="inline-flex flex-col items-start gap-1">
       <Button variant={variant} size="sm" onClick={download} disabled={busy} aria-label={ariaLabel}>
         <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
-        {busy ? tr.detail.downloading : tr.detail.download}
+        {busy ? (busyLabel ?? tr.detail.downloading) : (label ?? tr.detail.download)}
       </Button>
       {error && (
         <span role="alert" className="text-xs text-destructive">

@@ -21,6 +21,7 @@ import type {
   FeedbackQuery,
   FileType,
   PaginatedDto,
+  PdfStatus,
   PendingApprovalDto,
   PublicationListItemDto,
   PublicationListKind,
@@ -121,6 +122,8 @@ export function getRevisions(documentId: string): Promise<RevisionHistoryItemDto
 export const downloadPath = {
   revision: (revisionId: string) => `/revisions/${encodeURIComponent(revisionId)}/download`,
   current: (documentId: string) => `/documents/${encodeURIComponent(documentId)}/download`,
+  revisionPdf: (revisionId: string) => `/revisions/${encodeURIComponent(revisionId)}/download?format=pdf`,
+  currentPdf: (documentId: string) => `/documents/${encodeURIComponent(documentId)}/download?format=pdf`,
 };
 
 function auditQueryString(query: AuditLogQuery): string {
@@ -284,3 +287,8 @@ export function deleteTemplate(id: string): Promise<true> {
 }
 
 export const templateDownloadPath = (id: string) => `/templates/${encodeURIComponent(id)}/download`;
+
+/** Asks for the PDF copy of a published revision again (quality managers and administrators). */
+export function requestRevisionPdf(revisionId: string): Promise<{ id: string; pdfStatus: PdfStatus }> {
+  return apiFetch<{ id: string; pdfStatus: PdfStatus }>(`/revisions/${encodeURIComponent(revisionId)}/pdf`, { method: "POST" });
+}

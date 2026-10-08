@@ -13,6 +13,9 @@ import { FILE_TYPE_INFO } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 import { buildDownloadFileName } from './download-file-name';
 
+/** The file as it was stored, or its PDF copy (PROJECT.md 6.12). */
+export type DownloadFormat = 'original' | 'pdf';
+
 export interface RevisionDownload {
   stream: Readable;
   fileName: string;
@@ -52,6 +55,7 @@ export class RevisionsService {
             createdAt: true,
             changeSummary: true,
             fileSize: true,
+            pdfStatus: true,
             preparedBy: { select: { id: true, fullName: true } },
             approvedBy: { select: { id: true, fullName: true } },
           },
@@ -77,12 +81,13 @@ export class RevisionsService {
         createdAt: revision.createdAt.toISOString(),
         changeSummary: revision.changeSummary,
         fileSize: revision.fileSize,
+        pdfStatus: revision.pdfStatus,
         canEdit: canEditRevision(user, document, revision),
       }));
   }
 
   /** The file of one revision the user may open. */
-  async openDownload(user: AuthenticatedUser, revisionId: string, ipAddress: string | null): Promise<RevisionDownload> {
+  async openDownload(user: AuthenticatedUser, revisionId: string, ipAddress: string | null, format: DownloadFormat = 'original'): Promise<RevisionDownload> {
     const revision = await this.prisma.revision.findFirst({
       where: { id: revisionId, organizationId: user.organizationId },
       include: {
@@ -96,39 +101,52 @@ export class RevisionsService {
       throw new NotFoundException({ code: 'REVISION_NOT_FOUND', message: 'Revision not found' });
     }
 
-    const stream = await this.storage.tryGetStream(revision.storageKey);
+    const { document } = revision;
+    const pdf = format === 'pdf';
+    // The PDF copy exists only for revisions that were put in force, and only once it has been made
+    if (pdf && (revision.pdfStatus !== 'READY' || !revision.pdfStorageKey)) {
+      throw new NotFoundException({ code: 'PDF_NOT_AVAILABLE', message: 'There is no PDF copy of this revision (yet)' });
+    }
+    const storageKey = pdf ? revision.pdfStorageKey! : revision.storageKey;
+    const stream = await this.storage.tryGetStream(storageKey);
     if (!stream) {
-      this.logger.error(`The file of revision ${revision.id} is missing from storage (${revision.storageKey})`);
-      throw new NotFoundException({ code: 'REVISION_FILE_MISSING', message: 'The revision file is missing' });
+      this.logger.error(`The ${pdf ? 'PDF' : 'file'} of revision ${revision.id} is missing from storage (${storageKey})`);
+      throw new NotFoundException({ code: pdf ? 'PDF_NOT_AVAILABLE' : 'REVISION_FILE_MISSING', message: 'The revision file is missing' });
     }
 
-    const { document } = revision;
     const fileType = FILE_TYPE_INFO[document.fileType];
+    const size = pdf ? (revision.pdfFileSize ?? 0) : revision.fileSize;
     await this.auditLogs.log({
       organizationId: user.organizationId,
       userId: user.id,
       action: 'REVISION_DOWNLOADED',
       entityType: 'Revision',
       entityId: revision.id,
-      metadata: { documentId: document.id, code: document.code, revisionNo: revision.revisionNo, fileSize: revision.fileSize },
+      metadata: {
+        documentId: document.id,
+        code: document.code,
+        revisionNo: revision.revisionNo,
+        fileSize: size,
+        ...(pdf && { format: 'PDF' }),
+      },
       ipAddress,
     });
 
     return {
       stream,
-      mimeType: fileType.mimeType,
-      size: revision.fileSize,
+      mimeType: pdf ? 'application/pdf' : fileType.mimeType,
+      size,
       fileName: buildDownloadFileName({
         code: document.code,
         title: document.title,
         revisionNo: revision.revisionNo,
-        extension: fileType.extension,
+        extension: pdf ? 'pdf' : fileType.extension,
       }),
     };
   }
 
   /** The file of the revision in force (PROJECT.md 8: GET /documents/:id/download). */
-  async openCurrentDownload(user: AuthenticatedUser, documentId: string, ipAddress: string | null): Promise<RevisionDownload> {
+  async openCurrentDownload(user: AuthenticatedUser, documentId: string, ipAddress: string | null, format: DownloadFormat = 'original'): Promise<RevisionDownload> {
     const document = await this.prisma.document.findFirst({
       where: visibleDocumentWhere(user, documentId),
       select: { status: true, currentRevisionId: true },
@@ -140,6 +158,6 @@ export class RevisionsService {
     if (!document.currentRevisionId || document.status !== 'PUBLISHED') {
       throw new NotFoundException({ code: 'NO_PUBLISHED_REVISION', message: 'The document has no revision in force' });
     }
-    return this.openDownload(user, document.currentRevisionId, ipAddress);
+    return this.openDownload(user, document.currentRevisionId, ipAddress, format);
   }
 }

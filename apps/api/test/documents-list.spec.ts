@@ -341,6 +341,7 @@ describe('list item shape', () => {
       department: { id: ids.deptA, name: 'Alpha Dept', code: 'AA' },
       firstPublishedAt: '2025-01-10T09:00:00.000Z',
       revisedAt: '2025-06-01T09:00:00.000Z',
+      pdfStatus: 'NONE',
       revisionNo: 2,
       canEdit: false, // published documents are not edited in place
     });

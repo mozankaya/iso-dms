@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -6,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   Req,
   Res,
   StreamableFile,
@@ -19,7 +21,14 @@ import { StartRevisionDto } from './dto/start-revision.dto';
 import { contentDisposition } from './download-file-name';
 import { RevisionCancellationService } from './revision-cancellation.service';
 import { RevisionStartingService } from './revision-starting.service';
-import { RevisionDownload, RevisionsService } from './revisions.service';
+import { DownloadFormat, RevisionDownload, RevisionsService } from './revisions.service';
+
+/** `?format=pdf` asks for the PDF copy; nothing (or `original`) for the file as it was stored. */
+function parseFormat(format: string | undefined): DownloadFormat {
+  if (format === undefined || format === 'original') return 'original';
+  if (format === 'pdf') return 'pdf';
+  throw new BadRequestException({ code: 'UNSUPPORTED_FORMAT', message: 'The format has to be pdf' });
+}
 
 function toResponse(download: RevisionDownload, res: Response): StreamableFile {
   res.set({
@@ -73,19 +82,21 @@ export class RevisionsController {
   async downloadCurrent(
     @CurrentUser() user: AuthenticatedUser,
     @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Query('format') format: string | undefined,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    return toResponse(await this.revisionsService.openCurrentDownload(user, documentId, req.ip ?? null), res);
+    return toResponse(await this.revisionsService.openCurrentDownload(user, documentId, req.ip ?? null, parseFormat(format)), res);
   }
 
   @Get('revisions/:id/download')
   async download(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
+    @Query('format') format: string | undefined,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    return toResponse(await this.revisionsService.openDownload(user, id, req.ip ?? null), res);
+    return toResponse(await this.revisionsService.openDownload(user, id, req.ip ?? null, parseFormat(format)), res);
   }
 }

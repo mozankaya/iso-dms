@@ -1,4 +1,5 @@
 import type { DocumentStatus } from "@iso-dms/shared";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { tr } from "@/lib/i18n/tr";
@@ -37,8 +38,12 @@ const old = revisionRow({
   changeSummary: "İlk sürüm düzeltmesi",
 });
 
-function renderHistory(revisions = [draft, current, old], documentStatus: DocumentStatus = "PUBLISHED") {
-  return render(<RevisionHistory documentId="doc-1" code="PR-KK-001" documentStatus={documentStatus} revisions={revisions} />);
+function renderHistory(revisions = [draft, current, old], documentStatus: DocumentStatus = "PUBLISHED", canRequestPdf = false) {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <RevisionHistory documentId="doc-1" code="PR-KK-001" documentStatus={documentStatus} revisions={revisions} canRequestPdf={canRequestPdf} />
+    </QueryClientProvider>,
+  );
 }
 
 describe("RevisionHistory", () => {
@@ -128,8 +133,33 @@ describe("RevisionHistory", () => {
     it("downloads the file of that very revision", () => {
       renderHistory();
 
-      expect(within(rowOf(1)).getByRole("button")).toHaveAttribute("data-path", "/revisions/rev-1/download");
+      expect(within(rowOf(1)).getByRole("button", { name: `${tr.detail.download} (${t.revision(1)})` })).toHaveAttribute("data-path", "/revisions/rev-1/download");
       expect(within(rowOf(3)).getByRole("button", { name: `${tr.detail.download} (${t.revision(3)})` })).toBeInTheDocument();
+    });
+
+    it("offers the PDF of each revision that was put in force, and none for a draft", () => {
+      renderHistory();
+
+      expect(within(rowOf(1)).getByRole("button", { name: `${tr.pdf.download} (${t.revision(1)})` })).toHaveAttribute("data-path", "/revisions/rev-1/download?format=pdf");
+      expect(within(rowOf(2)).getByRole("button", { name: `${tr.pdf.download} (${t.revision(2)})` })).toHaveAttribute("data-path", "/revisions/rev-2/download?format=pdf");
+      expect(within(rowOf(3)).queryByRole("button", { name: new RegExp(`^${tr.pdf.download} `) })).not.toBeInTheDocument();
+    });
+
+    it("says a copy is being made, and hides a failed one from those who cannot ask again", () => {
+      const waiting = revisionRow({ id: "rev-2", pdfStatus: "PENDING" });
+      const failed = revisionRow({ id: "rev-1", revisionNo: 1, status: "SUPERSEDED", isCurrent: false, pdfStatus: "FAILED" });
+      renderHistory([waiting, failed]);
+
+      expect(within(rowOf(2)).getByText(tr.pdf.pending)).toBeInTheDocument();
+      expect(within(rowOf(1)).queryByText(tr.pdf.failed)).not.toBeInTheDocument();
+    });
+
+    it("lets the quality management ask for a failed copy again", () => {
+      const failed = revisionRow({ id: "rev-1", revisionNo: 1, status: "SUPERSEDED", isCurrent: false, pdfStatus: "FAILED" });
+      renderHistory([failed], "PUBLISHED", true);
+
+      expect(within(rowOf(1)).getByText(tr.pdf.failed)).toBeInTheDocument();
+      expect(within(rowOf(1)).getByRole("button", { name: tr.pdf.request })).toBeInTheDocument();
     });
   });
 

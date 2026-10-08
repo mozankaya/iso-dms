@@ -44,3 +44,8 @@ export function isDepartmentBound(role: UserRole | undefined): boolean {
 export function canAdminister(role: UserRole | undefined): boolean {
   return role === "ADMIN";
 }
+
+/** The PDF copies are looked after by the quality managers and administrators (PROJECT.md 6.12). */
+export function canRequestPdf(role: UserRole | undefined): boolean {
+  return role === "QUALITY_MANAGER" || role === "ADMIN";
+}

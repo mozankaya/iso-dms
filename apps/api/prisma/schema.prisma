@@ -222,6 +222,7 @@ model Revision {
   // NONE: not published or published before PDF copies existed; PENDING: queued; READY: pdfStorageKey is set
   pdfStatus            PdfStatus      @default(NONE)
   pdfChecksum          String? // SHA-256 of the PDF
+  pdfFileSize          Int?
   pdfGeneratedAt       DateTime?
   pdfFailureReason     String? // short code of the last failure
   fileSize             Int

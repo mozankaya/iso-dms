@@ -12,7 +12,7 @@ import { tr } from "@/lib/i18n/tr";
 export function DocumentActions({
   document,
 }: {
-  document: Pick<DocumentListItemDto, "id" | "code" | "canEdit" | "revisionNo" | "status">;
+  document: Pick<DocumentListItemDto, "id" | "code" | "canEdit" | "revisionNo" | "status" | "pdfStatus">;
 }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-3">
@@ -28,6 +28,16 @@ export function DocumentActions({
           path={downloadPath.current(document.id)}
           fallbackName={document.code}
           ariaLabel={`${tr.detail.download} (${document.code})`}
+        />
+      )}
+      {document.pdfStatus === "READY" && document.status !== "WITHDRAWN" && (
+        <DownloadButton
+          variant="ghost"
+          path={downloadPath.currentPdf(document.id)}
+          fallbackName={document.code}
+          ariaLabel={`${tr.pdf.download} (${document.code})`}
+          label={tr.pdf.download}
+          busyLabel={tr.pdf.downloading}
         />
       )}
     </span>

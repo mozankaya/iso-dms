@@ -334,6 +334,7 @@ describe('ordering, filters and pages', () => {
       department: { id: org.deptB, name: 'Beta', code: 'BB' },
       firstPublishedAt: expect.any(String),
       revisedAt: null,
+      pdfStatus: null,
       revisionNo: null,
       canEdit: false,
       withdrawnAt: null,
