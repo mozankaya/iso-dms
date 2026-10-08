@@ -20,6 +20,11 @@ export function canDecideApprovals(role: UserRole | undefined): boolean {
   return role !== undefined && APPROVAL_ROLES.includes(role);
 }
 
+/** Readers never see withdrawn documents (PROJECT.md 6.4), so they have no list of them either. */
+export function canViewWithdrawnList(role: UserRole | undefined): boolean {
+  return role !== undefined && role !== "READER";
+}
+
 export function canCreateDocuments(role: UserRole | undefined): boolean {
   return role !== undefined && DOCUMENT_CREATOR_ROLES.includes(role);
 }

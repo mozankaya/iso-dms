@@ -13,6 +13,9 @@ import type {
   FileType,
   PaginatedDto,
   PendingApprovalDto,
+  PublicationListItemDto,
+  PublicationListKind,
+  PublicationListQuery,
   RevisionHistoryItemDto,
   TemplateDto,
 } from "@iso-dms/shared";
@@ -73,6 +76,15 @@ export function uploadDocument(request: {
   body.set("title", request.title);
   body.set("file", request.file);
   return apiFetch<DocumentListItemDto>("/documents/upload", { method: "POST", body });
+}
+
+export function getPublicationList(kind: PublicationListKind, query: PublicationListQuery): Promise<PaginatedDto<PublicationListItemDto>> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  const text = search.toString();
+  return apiFetch<PaginatedDto<PublicationListItemDto>>(`/lists/${kind}${text ? `?${text}` : ""}`);
 }
 
 export function getDocument(id: string): Promise<DocumentDetailDto> {

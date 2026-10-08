@@ -5,8 +5,50 @@ import Link from "next/link";
 import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DASHBOARD_PERIOD_DAYS, type DashboardStatsDto } from "@iso-dms/shared";
 import { getCategories, getDashboardStats } from "@/lib/api/endpoints";
 import { tr } from "@/lib/i18n/tr";
+
+interface Counter {
+  key: string;
+  label: string;
+  value: number;
+  hint?: string;
+  href?: string;
+}
+
+/** The counters the user's role has business with: a null counter is not shown at all. */
+function countersOf(stats: DashboardStatsDto): Counter[] {
+  const t = tr.dashboard;
+  const counters: (Counter | null)[] = [
+    { key: "total", label: t.totalDocuments, value: stats.totalDocuments },
+    { key: "new", label: t.newlyPublished, value: stats.newlyPublished, hint: t.lastDays(DASHBOARD_PERIOD_DAYS), href: "/lists/new" },
+    { key: "revised", label: t.revised, value: stats.revised, hint: t.lastDays(DASHBOARD_PERIOD_DAYS), href: "/lists/revised" },
+    stats.withdrawn === null
+      ? null
+      : { key: "withdrawn", label: t.withdrawn, value: stats.withdrawn, hint: t.lastDays(DASHBOARD_PERIOD_DAYS), href: "/lists/withdrawn" },
+    stats.awaitingApproval === null
+      ? null
+      : { key: "awaiting", label: t.awaitingApproval, value: stats.awaitingApproval, hint: t.waitingForYou, href: "/approvals" },
+  ];
+  return counters.filter((counter): counter is Counter => counter !== null);
+}
+
+function CounterCard({ counter }: { counter: Counter }) {
+  const body = (
+    <>
+      <p className="text-sm text-muted">{counter.label}</p>
+      <p className="mt-1 text-3xl font-semibold">{counter.value}</p>
+      {counter.hint && <p className="mt-1 text-xs text-muted">{counter.hint}</p>}
+    </>
+  );
+  if (!counter.href) return <Card className="h-full p-5">{body}</Card>;
+  return (
+    <Link href={counter.href} className="block h-full rounded-lg border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary hover:bg-accent">
+      {body}
+    </Link>
+  );
+}
 
 export default function DashboardPage() {
   const stats = useQuery({ queryKey: ["dashboard-stats"], queryFn: getDashboardStats });
@@ -16,18 +58,24 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <h1 className="text-2xl font-semibold">{tr.dashboard.title}</h1>
 
-      <section aria-label={tr.dashboard.totalDocuments}>
-        {stats.isError ? (
-          <p role="alert" className="text-sm text-destructive">
-            {tr.dashboard.statsError}
-          </p>
-        ) : (
-          <Card className="max-w-xs p-5">
-            <p className="text-sm text-muted">{tr.dashboard.totalDocuments}</p>
-            <p className="mt-1 text-3xl font-semibold">
-              {stats.isPending ? "…" : stats.data.totalDocuments}
-            </p>
-          </Card>
+      <section aria-label={tr.dashboard.countersLabel}>
+        {stats.isError && (
+          <div role="alert" className="space-y-2">
+            <p className="text-sm text-destructive">{tr.dashboard.statsError}</p>
+            <Button variant="outline" size="sm" onClick={() => stats.refetch()}>
+              {tr.common.retry}
+            </Button>
+          </div>
+        )}
+        {stats.isPending && <p className="text-muted">{tr.common.loading}</p>}
+        {stats.isSuccess && (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {countersOf(stats.data).map((counter) => (
+              <li key={counter.key}>
+                <CounterCard counter={counter} />
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

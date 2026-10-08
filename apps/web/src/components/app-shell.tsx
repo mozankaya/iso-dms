@@ -1,14 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardCheck, Home, LogOut, Menu, ScrollText, X } from "lucide-react";
+import { ClipboardCheck, FilePlus2, FileX2, History, Home, LogOut, Menu, ScrollText, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
 import { getCategories, getPendingApprovals } from "@/lib/api/endpoints";
-import { canDecideApprovals, canViewAuditLog } from "@/lib/auth/permissions";
+import { canDecideApprovals, canViewAuditLog, canViewWithdrawnList } from "@/lib/auth/permissions";
 import { useRequireAuth } from "@/lib/auth/use-require-auth";
 import { tr } from "@/lib/i18n/tr";
 import { cn } from "@/lib/utils";
@@ -105,6 +105,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                   {waiting.data!.total}
                 </span>
               )}
+            </NavLink>
+          )}
+
+          <p className="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+            {tr.lists.navTitle}
+          </p>
+          <NavLink href="/lists/new" active={pathname === "/lists/new"} onNavigate={closeMenu}>
+            <FilePlus2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {tr.lists.kinds.new.title}
+          </NavLink>
+          <NavLink href="/lists/revised" active={pathname === "/lists/revised"} onNavigate={closeMenu}>
+            <History className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {tr.lists.kinds.revised.title}
+          </NavLink>
+          {canViewWithdrawnList(user?.role) && (
+            <NavLink href="/lists/withdrawn" active={pathname === "/lists/withdrawn"} onNavigate={closeMenu}>
+              <FileX2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {tr.lists.kinds.withdrawn.title}
             </NavLink>
           )}
 

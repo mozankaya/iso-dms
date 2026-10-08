@@ -112,3 +112,35 @@ describe("AppShell approvals", () => {
     expect(screen.getByRole("link", { name: new RegExp(tr.nav.approvals) })).toHaveAttribute("aria-current", "page");
   });
 });
+
+describe("AppShell lists", () => {
+  it.each(["READER", "EDITOR", "APPROVER", "QUALITY_MANAGER", "ADMIN"])("links the new and revised lists for %s", (who) => {
+    role = who;
+    renderShell();
+
+    expect(screen.getByText(tr.lists.navTitle)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: tr.lists.kinds.new.title })).toHaveAttribute("href", "/lists/new");
+    expect(screen.getByRole("link", { name: tr.lists.kinds.revised.title })).toHaveAttribute("href", "/lists/revised");
+  });
+
+  it.each(["EDITOR", "APPROVER", "QUALITY_MANAGER", "ADMIN"])("links the withdrawn list for %s", (who) => {
+    role = who;
+    renderShell();
+    expect(screen.getByRole("link", { name: tr.lists.kinds.withdrawn.title })).toHaveAttribute("href", "/lists/withdrawn");
+  });
+
+  it("does not link the withdrawn list for readers, who never see withdrawn documents", () => {
+    role = "READER";
+    renderShell();
+    expect(screen.queryByRole("link", { name: tr.lists.kinds.withdrawn.title })).not.toBeInTheDocument();
+  });
+
+  it("marks the list that is open as the current page", () => {
+    role = "ADMIN";
+    pathname = "/lists/revised";
+    renderShell();
+
+    expect(screen.getByRole("link", { name: tr.lists.kinds.revised.title })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: tr.lists.kinds.new.title })).not.toHaveAttribute("aria-current");
+  });
+});

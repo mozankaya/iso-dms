@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canCreateDocuments, canDecideApprovals, canViewAuditLog, isDepartmentBound } from "./permissions";
+import { canCreateDocuments, canDecideApprovals, canViewAuditLog, canViewWithdrawnList, isDepartmentBound } from "./permissions";
 
 describe("canCreateDocuments", () => {
   it.each(["EDITOR", "APPROVER", "QUALITY_MANAGER", "ADMIN"] as const)("allows %s", (role) => {
@@ -41,5 +41,15 @@ describe("canDecideApprovals", () => {
 
   it.each(["READER", "EDITOR", undefined] as const)("denies %s", (role) => {
     expect(canDecideApprovals(role)).toBe(false);
+  });
+});
+
+describe("canViewWithdrawnList", () => {
+  it.each(["EDITOR", "APPROVER", "QUALITY_MANAGER", "ADMIN"] as const)("allows %s", (role) => {
+    expect(canViewWithdrawnList(role)).toBe(true);
+  });
+
+  it.each(["READER", undefined] as const)("denies %s", (role) => {
+    expect(canViewWithdrawnList(role)).toBe(false);
   });
 });
