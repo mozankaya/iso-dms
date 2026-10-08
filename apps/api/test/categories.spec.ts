@@ -167,6 +167,8 @@ describe('GET /api/dashboard/stats', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    expect(response.body).toEqual({ totalDocuments: 3 });
+    // A reader: the withdrawn counter and the approval counter are not for this role. The published documents have
+    // no publication dates here, so nothing counts as new or revised.
+    expect(response.body).toEqual({ totalDocuments: 3, newlyPublished: 0, revised: 0, withdrawn: null, awaitingApproval: null });
   });
 });

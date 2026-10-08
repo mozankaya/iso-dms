@@ -14,5 +14,6 @@ import { ApprovalsService } from './approvals.service';
   imports: [AuditLogsModule, DocumentsModule, EditorModule, RevisionsModule],
   controllers: [ApprovalsController],
   providers: [ApprovalSubmissionService, ApprovalDecisionService, ApprovalsService, DocumentWithdrawalService, WithdrawalRequestService],
+  exports: [ApprovalsService],
 })
 export class ApprovalsModule {}
