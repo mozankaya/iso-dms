@@ -192,3 +192,19 @@ export async function fillDocumentFields(buffer: Buffer, values: DocumentFieldVa
   if (!anyChange) return { buffer, changes: {} };
   return { buffer: await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }), changes };
 }
+
+/**
+ * The part with the controls of the known document fields cut out. The fields change in every revision by
+ * themselves (revision number, preparer), so they are noise when two revisions are compared.
+ */
+export function withoutDocumentFieldControls(xml: string): string {
+  const known = findControls(xml).filter((control) => isKnownTag(control.tag));
+  let result = '';
+  let position = 0;
+  for (const control of known) {
+    if (control.start < position) continue; // nested in a control that was cut already
+    result += xml.slice(position, control.start);
+    position = control.end;
+  }
+  return result + xml.slice(position);
+}

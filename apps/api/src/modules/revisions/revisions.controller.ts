@@ -20,6 +20,7 @@ import { CancelRevisionDto } from './dto/cancel-revision.dto';
 import { StartRevisionDto } from './dto/start-revision.dto';
 import { contentDisposition } from './download-file-name';
 import { RevisionCancellationService } from './revision-cancellation.service';
+import { RevisionComparisonService } from './revision-comparison.service';
 import { RevisionStartingService } from './revision-starting.service';
 import { DownloadFormat, RevisionDownload, RevisionsService } from './revisions.service';
 
@@ -46,11 +47,24 @@ export class RevisionsController {
     private readonly revisionsService: RevisionsService,
     private readonly startingService: RevisionStartingService,
     private readonly cancellationService: RevisionCancellationService,
+    private readonly comparisonService: RevisionComparisonService,
   ) {}
 
   @Get('documents/:documentId/revisions')
   list(@CurrentUser() user: AuthenticatedUser, @Param('documentId', ParseUUIDPipe) documentId: string) {
     return this.revisionsService.listForDocument(user, documentId);
+  }
+
+  /** Text difference between two revisions the user may open (PROJECT.md 6.15). */
+  @Get('documents/:documentId/revisions/compare')
+  compare(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Query('from', ParseUUIDPipe) from: string,
+    @Query('to', ParseUUIDPipe) to: string,
+    @Req() req: Request,
+  ) {
+    return this.comparisonService.compare(user, documentId, from, to, req.ip ?? null);
   }
 
   /** PROJECT.md 6.4: "Revizyon / yayından kaldırma talebi" is for everybody who may write. */

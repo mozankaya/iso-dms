@@ -4,6 +4,7 @@ import { DocumentFieldsModule } from '../documents/document-fields/document-fiel
 import { DocumentsModule } from '../documents/documents.module';
 import { EditorModule } from '../editor/editor.module';
 import { RevisionCancellationService } from './revision-cancellation.service';
+import { RevisionComparisonService } from './revision-comparison.service';
 import { RevisionPublicationService } from './revision-publication.service';
 import { RevisionStartingService } from './revision-starting.service';
 import { RevisionsController } from './revisions.controller';
@@ -12,7 +13,7 @@ import { RevisionsService } from './revisions.service';
 @Module({
   imports: [AuditLogsModule, DocumentFieldsModule, DocumentsModule, EditorModule],
   controllers: [RevisionsController],
-  providers: [RevisionsService, RevisionPublicationService, RevisionStartingService, RevisionCancellationService],
+  providers: [RevisionsService, RevisionPublicationService, RevisionStartingService, RevisionCancellationService, RevisionComparisonService],
   exports: [RevisionPublicationService],
 })
 export class RevisionsModule {}
