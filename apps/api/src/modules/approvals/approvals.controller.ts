@@ -8,6 +8,8 @@ import { ApprovalSubmissionService } from './approval-submission.service';
 import { ApprovalsService } from './approvals.service';
 import { DecideApprovalDto } from './dto/decide-approval.dto';
 import { ListPendingApprovalsDto } from './dto/list-pending-approvals.dto';
+import { RequestWithdrawalDto } from './dto/request-withdrawal.dto';
+import { WithdrawalRequestService } from './withdrawal-request.service';
 
 const WRITER_ROLES = ['EDITOR', 'APPROVER', 'QUALITY_MANAGER', 'ADMIN'] as const;
 const APPROVER_ROLES = ['APPROVER', 'QUALITY_MANAGER', 'ADMIN'] as const;
@@ -18,6 +20,7 @@ export class ApprovalsController {
     private readonly submissions: ApprovalSubmissionService,
     private readonly decisions: ApprovalDecisionService,
     private readonly approvals: ApprovalsService,
+    private readonly withdrawals: WithdrawalRequestService,
   ) {}
 
   /** PROJECT.md 6.2 rule 3: the draft is locked and the approval steps are opened. */
@@ -30,6 +33,19 @@ export class ApprovalsController {
     @Req() req: Request,
   ) {
     return this.submissions.submit(user, revisionId, req.ip ?? null);
+  }
+
+  /** PROJECT.md 6.2 rule 7 and 6.4: a reasoned request to take a document in force out of use. */
+  @Post('documents/:documentId/withdrawal-requests')
+  @HttpCode(200)
+  @Roles(...WRITER_ROLES)
+  requestWithdrawal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Body() dto: RequestWithdrawalDto,
+    @Req() req: Request,
+  ) {
+    return this.withdrawals.request(user, documentId, dto, req.ip ?? null);
   }
 
   @Get('approvals/pending')

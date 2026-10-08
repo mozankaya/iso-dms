@@ -140,6 +140,8 @@ export interface DocumentDetailDto extends DocumentListItemDto {
   approval: ApprovalRequestDto | null;
   /** Whether the current user may start a new revision of this (published) document */
   canStartRevision: boolean;
+  /** Whether the current user may ask for this (published) document to be withdrawn */
+  canRequestWithdrawal: boolean;
 }
 
 export interface StartRevisionRequest {
@@ -176,6 +178,8 @@ export interface ApprovalRequestDto {
   /** The revision the request is about */
   revision: { id: string; revisionNo: number };
   requestedBy: PersonDto;
+  /** Why: the change summary of a revision, or the reason of a withdrawal request */
+  reason: string;
   /** ISO 8601 timestamps */
   createdAt: string;
   resolvedAt: string | null;
@@ -189,7 +193,7 @@ export interface PendingApprovalDto {
   stepId: string;
   stepOrder: number;
   approverRole: UserRole;
-  request: { id: string; type: RequestType; createdAt: string; requestedBy: PersonDto };
+  request: { id: string; type: RequestType; reason: string; createdAt: string; requestedBy: PersonDto };
   document: { id: string; code: string; title: string; department: DepartmentDto };
   revision: { id: string; revisionNo: number; changeSummary: string | null };
 }
@@ -197,6 +201,10 @@ export interface PendingApprovalDto {
 export interface DecideApprovalRequest {
   /** Optional when approving, required when rejecting */
   comment?: string;
+}
+
+export interface RequestWithdrawalRequest {
+  reason: string;
 }
 
 export interface CancelRevisionRequest {

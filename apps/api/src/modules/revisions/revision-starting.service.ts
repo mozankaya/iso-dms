@@ -12,6 +12,8 @@ import type { StartRevisionDto } from './dto/start-revision.dto';
 
 const alreadyOpen = () =>
   new ConflictException({ code: 'REVISION_ALREADY_OPEN', message: 'The document already has an open revision' });
+const withdrawalPending = () =>
+  new ConflictException({ code: 'WITHDRAWAL_PENDING', message: 'A request to withdraw the document is waiting for a decision' });
 const notRevisable = () =>
   new ConflictException({ code: 'DOCUMENT_NOT_REVISABLE', message: 'Only a published document can be revised' });
 
@@ -56,7 +58,10 @@ export class RevisionStartingService {
       throw new BadRequestException({ code: 'CHANGE_SUMMARY_REQUIRED', message: 'A change summary is required for a new revision' });
     }
 
-    this.assertRevisable(user, document, document.revisions);
+    const pendingWithdrawal = await this.prisma.documentRequest.count({
+      where: { organizationId: user.organizationId, documentId, type: 'WITHDRAWAL', status: 'PENDING' },
+    });
+    this.assertRevisable(user, document, document.revisions, pendingWithdrawal > 0);
     const source = await this.prisma.revision.findFirst({
       where: { id: document.currentRevisionId!, organizationId: user.organizationId },
       select: { id: true, revisionNo: true, storageKey: true, fileSize: true, checksum: true },
@@ -84,7 +89,8 @@ export class RevisionStartingService {
           select: { status: true, departmentId: true, currentRevisionId: true, revisions: { select: { revisionNo: true, status: true } } },
         });
         // Somebody may have started a revision, or published or withdrawn, while this request was copying
-        this.assertRevisable(user, locked, locked.revisions);
+        const waiting = await tx.documentRequest.count({ where: { documentId, type: 'WITHDRAWAL', status: 'PENDING' } });
+        this.assertRevisable(user, locked, locked.revisions, waiting > 0);
         if (locked.currentRevisionId !== source.id || Math.max(...locked.revisions.map((revision) => revision.revisionNo)) + 1 !== revisionNo) {
           throw alreadyOpen();
         }
@@ -131,9 +137,12 @@ export class RevisionStartingService {
     user: AuthenticatedUser,
     document: { status: 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED' | 'WITHDRAWN'; departmentId: string; currentRevisionId: string | null },
     revisions: { status: string }[],
+    hasPendingWithdrawal: boolean,
   ): void {
     // A document that was never published (or no longer is) has no revision to start from, whatever is open
-    if (!canStartRevision(user, document, false)) throw notRevisable();
+    if (!canStartRevision(user, document, false, false)) throw notRevisable();
     if (revisions.some((revision) => revision.status === 'DRAFT' || revision.status === 'IN_REVIEW')) throw alreadyOpen();
+    // The document may be about to leave: a draft of it would be wasted work
+    if (hasPendingWithdrawal) throw withdrawalPending();
   }
 }

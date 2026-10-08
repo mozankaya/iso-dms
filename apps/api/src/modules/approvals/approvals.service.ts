@@ -6,7 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { approvalDenial, canCancelRequest } from '../documents/document-access.policy';
 import { DocumentsService } from '../documents/documents.service';
-import { APPROVAL_REQUEST_INCLUDE, isStepActive } from './approval-request.mapper';
+import { APPROVAL_REQUEST_INCLUDE, isStepActive, requestAuthorId } from './approval-request.mapper';
 import type { ListPendingApprovalsDto } from './dto/list-pending-approvals.dto';
 
 const notCancellable = () =>
@@ -44,7 +44,7 @@ export class ApprovalsService {
           request.document !== null &&
           request.revision !== null &&
           isStepActive(request, step.stepOrder) &&
-          approvalDenial(user, step, request.document, request.revision) === null
+          approvalDenial(user, step, request.document, { preparedById: requestAuthorId(request) }) === null
         );
       })
       .sort((a, b) => a.request.createdAt.getTime() - b.request.createdAt.getTime() || a.id.localeCompare(b.id));
@@ -56,6 +56,7 @@ export class ApprovalsService {
       request: {
         id: step.request.id,
         type: step.request.type,
+        reason: step.request.reason,
         createdAt: step.request.createdAt.toISOString(),
         requestedBy: step.request.requestedBy,
       },
@@ -82,7 +83,7 @@ export class ApprovalsService {
   async cancel(user: AuthenticatedUser, requestId: string, ipAddress: string | null): Promise<DocumentDetailDto> {
     const found = await this.prisma.documentRequest.findFirst({
       where: { id: requestId, organizationId: user.organizationId },
-      select: { id: true, documentId: true, revisionId: true, requestedById: true },
+      select: { id: true, type: true, documentId: true, revisionId: true, requestedById: true },
     });
     if (!found || !found.documentId || !found.revisionId) {
       throw new NotFoundException({ code: 'REQUEST_NOT_FOUND', message: 'Request not found' });
@@ -102,8 +103,11 @@ export class ApprovalsService {
       const document = await tx.document.findUniqueOrThrow({ where: { id: documentId } });
       const revision = await tx.revision.findUniqueOrThrow({ where: { id: revisionId } });
       await tx.documentRequest.update({ where: { id: request.id }, data: { status: 'CANCELLED', resolvedAt: new Date() } });
-      await tx.revision.update({ where: { id: revision.id }, data: { status: 'DRAFT' } });
-      if (document.status === 'IN_REVIEW') await tx.document.update({ where: { id: document.id }, data: { status: 'DRAFT' } });
+      // A withdrawal request locks nothing: the document goes on as it was. A revision under review is given back.
+      if (request.type !== 'WITHDRAWAL') {
+        await tx.revision.update({ where: { id: revision.id }, data: { status: 'DRAFT' } });
+        if (document.status === 'IN_REVIEW') await tx.document.update({ where: { id: document.id }, data: { status: 'DRAFT' } });
+      }
 
       await this.auditLogs.log(
         {
@@ -112,7 +116,7 @@ export class ApprovalsService {
           action: 'REQUEST_CANCELLED',
           entityType: 'Revision',
           entityId: revision.id,
-          metadata: { documentId, code: document.code, revisionNo: revision.revisionNo, requestId: request.id },
+          metadata: { documentId, code: document.code, revisionNo: revision.revisionNo, requestId: request.id, type: request.type },
           ipAddress,
         },
         tx,

@@ -5,12 +5,14 @@ import { EditorModule } from '../editor/editor.module';
 import { RevisionsModule } from '../revisions/revisions.module';
 import { ApprovalDecisionService } from './approval-decision.service';
 import { ApprovalSubmissionService } from './approval-submission.service';
+import { DocumentWithdrawalService } from './document-withdrawal.service';
+import { WithdrawalRequestService } from './withdrawal-request.service';
 import { ApprovalsController } from './approvals.controller';
 import { ApprovalsService } from './approvals.service';
 
 @Module({
   imports: [AuditLogsModule, DocumentsModule, EditorModule, RevisionsModule],
   controllers: [ApprovalsController],
-  providers: [ApprovalSubmissionService, ApprovalDecisionService, ApprovalsService],
+  providers: [ApprovalSubmissionService, ApprovalDecisionService, ApprovalsService, DocumentWithdrawalService, WithdrawalRequestService],
 })
 export class ApprovalsModule {}

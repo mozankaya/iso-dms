@@ -131,12 +131,13 @@ export class RevisionsService {
   async openCurrentDownload(user: AuthenticatedUser, documentId: string, ipAddress: string | null): Promise<RevisionDownload> {
     const document = await this.prisma.document.findFirst({
       where: visibleDocumentWhere(user, documentId),
-      select: { currentRevisionId: true },
+      select: { status: true, currentRevisionId: true },
     });
     if (!document) {
       throw new NotFoundException({ code: 'DOCUMENT_NOT_FOUND', message: 'Document not found' });
     }
-    if (!document.currentRevisionId) {
+    // A withdrawn document keeps its last revision for the record, but nothing is in force any more
+    if (!document.currentRevisionId || document.status !== 'PUBLISHED') {
       throw new NotFoundException({ code: 'NO_PUBLISHED_REVISION', message: 'The document has no revision in force' });
     }
     return this.openDownload(user, document.currentRevisionId, ipAddress);

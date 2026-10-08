@@ -13,6 +13,8 @@ import {
   canEditListedDocument,
   canCancelRevision,
   canEditRevision,
+  canRequestWithdrawal,
+  canViewApproval,
   canStartRevision,
   canSubmitRevision,
   canViewRevision,
@@ -91,15 +93,24 @@ export class DocumentsService {
 
     const canEdit = openRevision !== null && canEditRevision(user, document, openRevision);
 
+    // A request to withdraw the document, while it waits for its decisions
+    const pendingWithdrawal = await this.prisma.documentRequest.findFirst({
+      where: { organizationId: user.organizationId, documentId: document.id, type: 'WITHDRAWAL', status: 'PENDING' },
+      include: APPROVAL_REQUEST_INCLUDE,
+    });
+
     // The approval of the revision that is being reviewed, or else of the open draft (the last one, if it was rejected)
     const underApproval = viewable.find((revision) => revision.status === 'IN_REVIEW') ?? openDraft;
-    const approval = underApproval
-      ? await this.prisma.documentRequest.findFirst({
-          where: { organizationId: user.organizationId, revisionId: underApproval.id },
-          orderBy: { createdAt: 'desc' },
-          include: APPROVAL_REQUEST_INCLUDE,
-        })
-      : null;
+    const revisionApproval =
+      !pendingWithdrawal && underApproval
+        ? await this.prisma.documentRequest.findFirst({
+            where: { organizationId: user.organizationId, revisionId: underApproval.id },
+            orderBy: { createdAt: 'desc' },
+            include: APPROVAL_REQUEST_INCLUDE,
+          })
+        : null;
+    const approval = canViewApproval(user, document) ? (pendingWithdrawal ?? revisionApproval) : null;
+    const hasOpenRevision = document.revisions.some((revision) => revision.status === 'DRAFT' || revision.status === 'IN_REVIEW');
     return {
       ...toDocumentListItem(document, canEdit),
       openRevision,
@@ -115,11 +126,8 @@ export class DocumentsService {
       canSubmit: openDraft !== undefined && canSubmitRevision(user, document, openDraft),
       canCancelRevision: openDraft !== undefined && canCancelRevision(user, document, openDraft),
       approval: approval ? toApprovalRequestDto(user, approval, document) : null,
-      canStartRevision: canStartRevision(
-        user,
-        document,
-        document.revisions.some((revision) => revision.status === 'DRAFT' || revision.status === 'IN_REVIEW'),
-      ),
+      canStartRevision: canStartRevision(user, document, hasOpenRevision, pendingWithdrawal !== null),
+      canRequestWithdrawal: canRequestWithdrawal(user, document, hasOpenRevision, pendingWithdrawal !== null),
     };
   }
 

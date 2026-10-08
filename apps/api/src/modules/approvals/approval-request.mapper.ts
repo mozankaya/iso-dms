@@ -13,6 +13,14 @@ export const APPROVAL_REQUEST_INCLUDE = {
 export type ApprovalRequestRow = Prisma.DocumentRequestGetPayload<{ include: typeof APPROVAL_REQUEST_INCLUDE }>;
 
 /**
+ * Who may not decide on a request (PROJECT.md 6.3): whoever prepared the revision under review, and for a withdrawal
+ * (which has no draft) whoever asked for it.
+ */
+export function requestAuthorId(request: { type: string; requestedById: string; revision: { preparedById: string } | null }): string {
+  return request.type === 'WITHDRAWAL' || !request.revision ? request.requestedById : request.revision.preparedById;
+}
+
+/**
  * Whether it is the turn of a step: it is undecided and every step before it was approved (PROJECT.md 6.3: the
  * department approves first, then the quality manager). A request that is not pending has no turn at all.
  */
@@ -34,6 +42,7 @@ export function toApprovalRequestDto(
     status: request.status,
     revision: { id: request.revision!.id, revisionNo: request.revision!.revisionNo },
     requestedBy: request.requestedBy,
+    reason: request.reason,
     createdAt: request.createdAt.toISOString(),
     resolvedAt: request.resolvedAt?.toISOString() ?? null,
     steps: request.steps.map((step) => ({
@@ -44,7 +53,7 @@ export function toApprovalRequestDto(
       approver: step.approver,
       comment: step.comment,
       decidedAt: step.decidedAt?.toISOString() ?? null,
-      canDecide: isStepActive(request, step.stepOrder) && approvalDenial(user, step, document, request.revision!) === null,
+      canDecide: isStepActive(request, step.stepOrder) && approvalDenial(user, step, document, { preparedById: requestAuthorId(request) }) === null,
     })),
     canCancel:
       request.status === 'PENDING' &&

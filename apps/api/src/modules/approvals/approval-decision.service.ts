@@ -6,7 +6,8 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { approvalDenial } from '../documents/document-access.policy';
 import { DocumentsService } from '../documents/documents.service';
 import { RevisionPublicationService } from '../revisions/revision-publication.service';
-import { APPROVAL_REQUEST_INCLUDE, isStepActive } from './approval-request.mapper';
+import { DocumentWithdrawalService } from './document-withdrawal.service';
+import { APPROVAL_REQUEST_INCLUDE, isStepActive, requestAuthorId } from './approval-request.mapper';
 import type { DecideApprovalDto } from './dto/decide-approval.dto';
 
 /**
@@ -19,6 +20,7 @@ export class ApprovalDecisionService {
     private readonly prisma: PrismaService,
     private readonly auditLogs: AuditLogsService,
     private readonly publication: RevisionPublicationService,
+    private readonly withdrawal: DocumentWithdrawalService,
     private readonly documents: DocumentsService,
   ) {}
 
@@ -43,6 +45,8 @@ export class ApprovalDecisionService {
         request: {
           select: {
             id: true,
+            type: true,
+            requestedById: true,
             documentId: true,
             revision: { select: { id: true, preparedById: true } },
             document: { select: { id: true, departmentId: true } },
@@ -54,7 +58,7 @@ export class ApprovalDecisionService {
       throw new NotFoundException({ code: 'APPROVAL_STEP_NOT_FOUND', message: 'Approval step not found' });
     }
 
-    const denial = approvalDenial(user, step, step.request.document, step.request.revision);
+    const denial = approvalDenial(user, step, step.request.document, { preparedById: requestAuthorId(step.request) });
     if (denial === 'NOT_ALLOWED') {
       throw new ForbiddenException({ code: 'APPROVAL_NOT_ALLOWED', message: 'This step is not yours to decide' });
     }
@@ -97,11 +101,15 @@ export class ApprovalDecisionService {
       const document = await tx.document.findUniqueOrThrow({ where: { id: documentId } });
       const isFinal = decision === 'APPROVED' && request.steps.every((other) => other.id === current.id || other.decision === 'APPROVED');
 
+      const withdrawal = request.type === 'WITHDRAWAL';
       if (decision === 'REJECTED') {
         await tx.documentRequest.update({ where: { id: request.id }, data: { status: 'REJECTED', resolvedAt: now } });
-        // The draft goes back to its authors; a document that was never in force is a draft again
-        await tx.revision.update({ where: { id: revision.id }, data: { status: 'DRAFT' } });
-        if (document.status === 'IN_REVIEW') await tx.document.update({ where: { id: document.id }, data: { status: 'DRAFT' } });
+        // The draft goes back to its authors; a document that was never in force is a draft again. A refused
+        // withdrawal leaves the document as it is.
+        if (!withdrawal) {
+          await tx.revision.update({ where: { id: revision.id }, data: { status: 'DRAFT' } });
+          if (document.status === 'IN_REVIEW') await tx.document.update({ where: { id: document.id }, data: { status: 'DRAFT' } });
+        }
       } else if (isFinal) {
         await tx.documentRequest.update({ where: { id: request.id }, data: { status: 'APPROVED', resolvedAt: now } });
       }
@@ -120,6 +128,7 @@ export class ApprovalDecisionService {
             requestId: request.id,
             stepOrder: current.stepOrder,
             comment,
+            type: request.type,
             final: isFinal,
           },
           ipAddress,
@@ -127,7 +136,11 @@ export class ApprovalDecisionService {
         tx,
       );
 
-      if (isFinal) await this.publication.publish(tx, { user, document, revision, ipAddress });
+      if (isFinal && withdrawal) {
+        await this.withdrawal.withdraw(tx, { user, document, revision, reason: request.reason, requestId: request.id, ipAddress });
+      } else if (isFinal) {
+        await this.publication.publish(tx, { user, document, revision, ipAddress });
+      }
     });
 
     return this.documents.findOne(user, documentId);

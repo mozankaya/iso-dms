@@ -97,13 +97,29 @@ export function canStartRevision(
   user: AuthenticatedUser,
   document: Pick<DocumentForAccess, 'status' | 'departmentId' | 'currentRevisionId'>,
   hasOpenRevision: boolean,
+  hasPendingWithdrawal: boolean,
 ): boolean {
   return (
     document.status === 'PUBLISHED' &&
     document.currentRevisionId !== null &&
     !hasOpenRevision &&
+    !hasPendingWithdrawal &&
     canWriteInDepartment(user, document.departmentId)
   );
+}
+
+/**
+ * Whether the user may ask for a document in force to be withdrawn (PROJECT.md 6.2 rule 7): the same people who
+ * may start a revision, and only while nothing else is going on with the document: a draft or a revision in
+ * review would be left without a document, and a second request would only be a duplicate.
+ */
+export function canRequestWithdrawal(
+  user: AuthenticatedUser,
+  document: Pick<DocumentForAccess, 'status' | 'departmentId' | 'currentRevisionId'>,
+  hasOpenRevision: boolean,
+  hasPendingWithdrawal: boolean,
+): boolean {
+  return canStartRevision(user, document, hasOpenRevision, hasPendingWithdrawal);
 }
 
 /**
@@ -155,6 +171,22 @@ export function approvalDenial(
     (step.approverRole === 'QUALITY_MANAGER' && user.role === 'QUALITY_MANAGER');
   if (!roleFits) return 'NOT_ALLOWED';
   return revision.preparedById === user.id ? 'OWN_REVISION' : null;
+}
+
+/**
+ * Whether the user may see how a document is doing in the approval flow: who asked for what, why, who decided. That is
+ * internal to the people who work with the document (the same people who may see its unpublished revisions); readers
+ * and editors of other departments see only what is in force.
+ */
+export function canViewApproval(user: AuthenticatedUser, document: Pick<DocumentForAccess, 'departmentId'>): boolean {
+  switch (user.role) {
+    case 'READER':
+      return false;
+    case 'EDITOR':
+      return user.departmentId !== null && user.departmentId === document.departmentId;
+    default:
+      return true;
+  }
 }
 
 /** Whoever sent a revision to review may take it back, and so may the administrator. */
