@@ -49,6 +49,13 @@ enum RequestStatus {
   CANCELLED
 }
 
+enum PdfStatus {
+  NONE
+  PENDING
+  READY
+  FAILED
+}
+
 enum ApprovalDecision {
   PENDING
   APPROVED
@@ -212,6 +219,11 @@ model Revision {
   status               RevisionStatus @default(DRAFT)
   storageKey           String
   pdfStorageKey        String?
+  // NONE: not published or published before PDF copies existed; PENDING: queued; READY: pdfStorageKey is set
+  pdfStatus            PdfStatus      @default(NONE)
+  pdfChecksum          String? // SHA-256 of the PDF
+  pdfGeneratedAt       DateTime?
+  pdfFailureReason     String? // short code of the last failure
   fileSize             Int
   checksum             String // SHA-256
   editorKey            String // ONLYOFFICE document.key

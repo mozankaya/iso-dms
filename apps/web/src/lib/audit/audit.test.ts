@@ -207,4 +207,10 @@ describe("describeEntry", () => {
     expect(describe_("TEMPLATE_FILE_REPLACED", { name: "Prosedür", fileType: "DOCX", fileSize: 2048 })).toMatch(/^Prosedür · 2/);
     expect(describe_("TEMPLATE_DELETED", { name: "Prosedür", fileType: "DOCX" })).toBe("Prosedür · Word");
   });
+
+  it("describes the PDF copy actions", () => {
+    expect(describe_("REVISION_PDF_GENERATED", { fileSize: 2048 })).toMatch(/^2/);
+    expect(describe_("REVISION_PDF_FAILED", { reason: "CONVERTER_UNAVAILABLE" })).toBe("Dönüştürme sunucusuna ulaşılamadı");
+    expect(describe_("REVISION_PDF_FAILED", { reason: "SOMETHING_NEW" })).toBe("SOMETHING_NEW");
+  });
 });

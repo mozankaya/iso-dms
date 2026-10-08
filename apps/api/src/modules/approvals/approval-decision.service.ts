@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { approvalDenial } from '../documents/document-access.policy';
 import { DocumentsService } from '../documents/documents.service';
+import { PdfQueueService } from '../pdf/pdf-queue.service';
 import { RevisionPublicationService } from '../revisions/revision-publication.service';
 import { DocumentWithdrawalService } from './document-withdrawal.service';
 import { APPROVAL_REQUEST_INCLUDE, isStepActive, requestAuthorId } from './approval-request.mapper';
@@ -22,6 +23,7 @@ export class ApprovalDecisionService {
     private readonly publication: RevisionPublicationService,
     private readonly withdrawal: DocumentWithdrawalService,
     private readonly documents: DocumentsService,
+    private readonly pdfQueue: PdfQueueService,
   ) {}
 
   approve(user: AuthenticatedUser, stepId: string, dto: DecideApprovalDto, ipAddress: string | null): Promise<DocumentDetailDto> {
@@ -72,6 +74,7 @@ export class ApprovalDecisionService {
     }
 
     const documentId = step.request.document.id;
+    let publishedRevisionId: string | null = null;
     await this.prisma.$transaction(async (tx) => {
       // Always the document first, then the revision (like every other writer), so decisions on the same
       // document are taken one after the other
@@ -140,8 +143,12 @@ export class ApprovalDecisionService {
         await this.withdrawal.withdraw(tx, { user, document, revision, reason: request.reason, requestId: request.id, ipAddress });
       } else if (isFinal) {
         await this.publication.publish(tx, { user, document, revision, ipAddress });
+        publishedRevisionId = revision.id;
       }
     });
+
+    // After the commit, so the worker finds the revision published. Best effort: the sweep covers a lost job.
+    if (publishedRevisionId) await this.pdfQueue.enqueue(publishedRevisionId);
 
     return this.documents.findOne(user, documentId);
   }

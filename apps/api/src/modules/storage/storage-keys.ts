@@ -22,3 +22,8 @@ export function buildRevisionKey(params: {
   const { extension } = FILE_TYPE_INFO[params.fileType];
   return `${params.organizationId}/${params.documentId}/${params.revisionNo}/${randomUUID()}.${extension}`;
 }
+
+/** Object key of the PDF copy of a revision: {organizationId}/{documentId}/{revisionNo}/{uuid}.pdf */
+export function buildPdfKey(params: { organizationId: string; documentId: string; revisionNo: number }): string {
+  return `${params.organizationId}/${params.documentId}/${params.revisionNo}/${randomUUID()}.pdf`;
+}

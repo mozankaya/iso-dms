@@ -7,6 +7,7 @@ import { EditorController } from './editor.controller';
 import { FileTokenService } from './file-token.service';
 import { OnlyOfficeCommandClient } from './onlyoffice-command.client';
 import { OnlyOfficeJwtService } from './onlyoffice-jwt.service';
+import { RevisionPdfConverter } from './revision-pdf-converter';
 
 @Module({
   imports: [AuditLogsModule],
@@ -18,8 +19,9 @@ import { OnlyOfficeJwtService } from './onlyoffice-jwt.service';
     OnlyOfficeJwtService,
     OnlyOfficeCommandClient,
     EditSessionGate,
+    RevisionPdfConverter,
   ],
-  // Other modules only get the gate: they ask whether editing is over without knowing about ONLYOFFICE
-  exports: [EditSessionGate],
+  // Other modules only get the gate and the converter: they ask whether editing is over, or for a PDF, without knowing about ONLYOFFICE
+  exports: [EditSessionGate, RevisionPdfConverter],
 })
 export class EditorModule {}

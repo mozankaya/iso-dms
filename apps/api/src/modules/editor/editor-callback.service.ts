@@ -9,6 +9,7 @@ import { buildRevisionKey, FILE_TYPE_INFO } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 import { FileTokenService } from './file-token.service';
 import { OnlyOfficeJwtService } from './onlyoffice-jwt.service';
+import { toInternalOnlyOfficeUrl } from './onlyoffice-urls';
 
 /** The answer the document server expects: error 0 means "handled", 1 asks it to treat the save as failed. */
 export interface CallbackResponse {
@@ -224,18 +225,7 @@ export class EditorCallbackService {
 
   /** The document server reports its own address; the API may only fetch from the configured origins. */
   private toInternalUrl(reported: string): string | null {
-    let parsed: URL;
-    try {
-      parsed = new URL(reported);
-    } catch {
-      return null;
-    }
-
-    const internal = new URL(this.config.get<string>('ONLYOFFICE_INTERNAL_URL', 'http://localhost:8080'));
-    const publicUrl = new URL(this.config.get<string>('ONLYOFFICE_PUBLIC_URL', 'http://localhost:8080'));
-    if (parsed.origin !== internal.origin && parsed.origin !== publicUrl.origin) return null;
-
-    return `${internal.origin}${parsed.pathname}${parsed.search}`;
+    return toInternalOnlyOfficeUrl(this.config, reported);
   }
 
   private async download(url: string): Promise<Buffer> {

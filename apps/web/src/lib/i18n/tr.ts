@@ -459,6 +459,8 @@ export const tr = {
       REVISION_SAVED: "Revizyon kaydedildi",
       REVISION_SAVE_REJECTED: "Kayıt reddedildi",
       REVISION_DOWNLOADED: "Revizyon indirildi",
+      REVISION_PDF_GENERATED: "PDF kopyası oluşturuldu",
+      REVISION_PDF_FAILED: "PDF kopyası oluşturulamadı",
     },
     details: {
       modeEdit: "Düzenleme modunda",
@@ -498,6 +500,9 @@ export const tr = {
         DOWNLOAD_FAILED: "Dosya editör sunucusundan alınamadı",
         INVALID_CONTENT: "Geçersiz dosya içeriği",
         UNKNOWN_USER: "Kayıtlı olmayan hesap",
+        CONVERTER_UNAVAILABLE: "Dönüştürme sunucusuna ulaşılamadı",
+        CONVERSION_FAILED: "Dönüştürme başarısız oldu",
+        INVALID_OUTPUT: "Dönüştürülen dosya geçerli bir PDF değil",
         WRONG_PASSWORD: "Yanlış şifre",
         INACTIVE_USER: "Pasif hesap",
       },

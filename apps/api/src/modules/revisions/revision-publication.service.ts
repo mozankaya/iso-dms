@@ -40,7 +40,8 @@ export class RevisionPublicationService {
 
     await tx.revision.update({
       where: { id: revision.id },
-      data: { status: 'APPROVED', approvedById: user.id, approvedAt: now, publishedAt: now },
+      // The PDF copy is made after this commit (PROJECT.md 6.12); until then the revision waits for it
+      data: { status: 'APPROVED', approvedById: user.id, approvedAt: now, publishedAt: now, pdfStatus: 'PENDING' },
     });
     await tx.document.update({
       where: { id: document.id },
