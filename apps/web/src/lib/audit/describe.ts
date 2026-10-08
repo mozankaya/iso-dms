@@ -122,6 +122,14 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
       }
       break;
     }
+    case "DOCUMENT_REVIEWED":
+      parts.push(text(metadata, "note"));
+      break;
+    case "DOCUMENT_REVIEW_SETTINGS_CHANGED": {
+      const to = number(metadata, "to");
+      parts.push(to !== null ? tr.detail.reviewIntervalMonths(to) : tr.review.noInterval);
+      break;
+    }
     case "TEMPLATE_CREATED":
       parts.push(text(metadata, "name"));
       parts.push(templateType(text(metadata, "fileType")));

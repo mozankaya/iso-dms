@@ -1,17 +1,18 @@
 "use client";
 
-import type { DocumentDetailDto } from "@iso-dms/shared";
+import { REVIEW_DUE_WINDOW_DAYS, type DocumentDetailDto } from "@iso-dms/shared";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { FeedbackForm } from "@/components/feedback/feedback-form";
 import { ApprovalPanel } from "@/components/documents/approval-panel";
 import { CancelRevisionButton } from "@/components/documents/cancel-revision-button";
 import { DocumentHistory } from "@/components/audit/document-history";
 import { DownloadButton } from "@/components/documents/download-button";
 import { PdfDownload } from "@/components/documents/pdf-download";
+import { ReviewActions } from "@/components/documents/review-actions";
 import { RevisionHistory } from "@/components/documents/revision-history";
 import { RequestWithdrawalButton } from "@/components/documents/request-withdrawal-button";
 import { StartRevisionButton } from "@/components/documents/start-revision-button";
@@ -34,6 +35,28 @@ function InfoItem({ label, children }: { label: string; children: ReactNode }) {
       <dt className="text-sm text-muted">{label}</dt>
       <dd className="mt-0.5 font-medium">{children}</dd>
     </div>
+  );
+}
+
+/** A document in force whose review date has passed (or is near) carries a notice; it stays in force (PROJECT.md 6.5). */
+function ReviewNotice({ document }: { document: DocumentDetailDto }) {
+  // The moment the page was drawn: the notice does not flip while somebody reads it
+  const [now] = useState(() => Date.now());
+  if (document.status !== "PUBLISHED" || !document.nextReviewAt) return null;
+  const remainingDays = (new Date(document.nextReviewAt).getTime() - now) / (24 * 60 * 60 * 1000);
+  if (remainingDays > REVIEW_DUE_WINDOW_DAYS) return null;
+  const overdue = remainingDays < 0;
+  return (
+    <p
+      role="status"
+      className={
+        overdue
+          ? "rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+          : "rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+      }
+    >
+      {overdue ? tr.review.overdueNotice(formatDate(document.nextReviewAt)) : tr.review.dueSoonNotice(formatDate(document.nextReviewAt))}
+    </p>
   );
 }
 
@@ -62,6 +85,7 @@ function DocumentInfo({ document }: { document: DocumentDetailDto }) {
         <InfoItem label={t.reviewInterval}>
           {document.reviewIntervalMonths ? t.reviewIntervalMonths(document.reviewIntervalMonths) : t.notSet}
         </InfoItem>
+        <InfoItem label={t.lastReviewedAt}>{formatDate(document.lastReviewedAt)}</InfoItem>
         <InfoItem label={t.nextReviewAt}>{formatDate(document.nextReviewAt)}</InfoItem>
         <InfoItem label={t.retention}>
           {document.retentionYears ? t.retentionYears(document.retentionYears) : t.notSet}
@@ -149,6 +173,7 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
             )}
             {doc.canStartRevision && <StartRevisionButton documentId={doc.id} code={doc.code} />}
             {doc.canRequestWithdrawal && <RequestWithdrawalButton documentId={doc.id} code={doc.code} />}
+            <ReviewActions document={doc} />
             {doc.openRevision && (
               <Link href={`/documents/${doc.id}/edit`} className={buttonVariants()}>
                 {doc.canEdit ? t.edit : t.view}
@@ -174,6 +199,8 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
           {t.withdrawnNotice}
         </p>
       )}
+
+      <ReviewNotice document={doc} />
 
       <DocumentInfo document={doc} />
 

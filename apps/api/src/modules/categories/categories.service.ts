@@ -15,6 +15,7 @@ const ADMIN_SELECT = {
   description: true,
   icon: true,
   sortOrder: true,
+  defaultReviewIntervalMonths: true,
   isExternal: true,
   externalUrl: true,
   isActive: true,
@@ -101,6 +102,7 @@ export class CategoriesService {
             description: dto.description ?? null,
             icon: dto.icon ?? null,
             sortOrder: dto.sortOrder ?? Math.max(0, ...existing.map((other) => other.sortOrder)) + 1,
+            defaultReviewIntervalMonths: dto.defaultReviewIntervalMonths ?? null,
             isExternal,
             externalUrl: dto.externalUrl ?? null,
           },
@@ -142,7 +144,7 @@ export class CategoriesService {
         changes[key] = { from: current[key], to: next };
         (data as Record<string, unknown>)[key] = next;
       };
-      (['name', 'description', 'icon', 'sortOrder', 'externalUrl', 'isActive'] as const).forEach(change);
+      (['name', 'description', 'icon', 'sortOrder', 'defaultReviewIntervalMonths', 'externalUrl', 'isActive'] as const).forEach(change);
       // Nothing to change is not an error, and not worth a record
       if (Object.keys(changes).length === 0) return current;
 

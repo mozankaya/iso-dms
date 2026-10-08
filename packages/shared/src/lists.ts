@@ -26,3 +26,22 @@ export interface PublicationListQuery {
   page?: number;
   pageSize?: number;
 }
+
+/** The review list shows documents whose review is due within this many days (and those that are overdue). */
+export const REVIEW_DUE_WINDOW_DAYS = 30;
+
+/** A document in force whose periodic review is due (PROJECT.md 6.5). */
+export interface ReviewDueItemDto extends DocumentListItemDto {
+  /** ISO 8601 */
+  nextReviewAt: string;
+  /** The date has passed */
+  overdue: boolean;
+  owner: { id: string; fullName: string };
+}
+
+export interface ReviewDueQuery {
+  departmentId?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}

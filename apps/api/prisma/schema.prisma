@@ -158,6 +158,8 @@ model Category {
   description    String?
   icon           String?
   sortOrder      Int      @default(0)
+  // New documents of the category start with this review period; empty: no period
+  defaultReviewIntervalMonths Int?
   isExternal     Boolean  @default(false)
   externalUrl    String?
   isActive       Boolean  @default(true)
@@ -205,6 +207,8 @@ model Document {
   revisedAt            DateTime?
   reviewIntervalMonths Int?
   nextReviewAt         DateTime?
+  // When the document was last published or marked as reviewed; the next review is due one period after it
+  lastReviewedAt       DateTime?
   retentionYears       Int?
   withdrawnAt          DateTime?
   withdrawalReason     String?

@@ -26,4 +26,6 @@ export interface DashboardStatsDto {
   awaitingApproval: number | null;
   /** Feedback nobody has closed yet; null unless the role reads feedback (quality managers, administrators) */
   openFeedback: number | null;
+  /** Documents whose review is due or overdue and are the user's to review; null for readers */
+  reviewDue: number | null;
 }

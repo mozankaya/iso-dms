@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Bell, Building2, FileStack, ClipboardCheck, KeyRound, Users, FilePlus2, FolderCog, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
+import { Bell, Building2, CalendarClock, FileStack, ClipboardCheck, KeyRound, Users, FilePlus2, FolderCog, FileX2, History, Home, LogOut, Menu, MessageSquare, ScrollText, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -130,6 +130,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <History className="h-4 w-4 shrink-0" aria-hidden="true" />
             {tr.lists.kinds.revised.title}
           </NavLink>
+          {canViewWithdrawnList(user?.role) && (
+            <NavLink href="/lists/review-due" active={pathname === "/lists/review-due"} onNavigate={closeMenu}>
+              <CalendarClock className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {tr.reviewDue.navTitle}
+            </NavLink>
+          )}
           {canViewWithdrawnList(user?.role) && (
             <NavLink href="/lists/withdrawn" active={pathname === "/lists/withdrawn"} onNavigate={closeMenu}>
               <FileX2 className="h-4 w-4 shrink-0" aria-hidden="true" />

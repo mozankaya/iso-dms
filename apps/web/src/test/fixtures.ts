@@ -26,6 +26,7 @@ export function documentDetail(overrides: Partial<DocumentDetailDto> = {}): Docu
     owner: { id: "user-1", fullName: "Ece Editör" },
     currentRevisionId: "rev-2",
     reviewIntervalMonths: 12,
+    lastReviewedAt: "2025-06-01T09:00:00.000Z",
     nextReviewAt: "2026-06-01T09:00:00.000Z",
     retentionYears: 5,
     withdrawnAt: null,
@@ -37,6 +38,8 @@ export function documentDetail(overrides: Partial<DocumentDetailDto> = {}): Docu
     canStartRevision: false,
     canRequestWithdrawal: false,
     canSendFeedback: true,
+    canMarkReviewed: false,
+    canSetReviewInterval: false,
     ...overrides,
   };
 }

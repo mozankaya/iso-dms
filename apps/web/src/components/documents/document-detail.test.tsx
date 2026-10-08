@@ -135,6 +135,49 @@ describe("DocumentDetail", () => {
       expect(documentDownload()).toBeDefined();
     });
 
+    it("warns that the review is overdue, and shows the last review", async () => {
+      getDocument.mockResolvedValue(documentDetail({ reviewIntervalMonths: 12, lastReviewedAt: "2025-01-01T09:00:00.000Z", nextReviewAt: "2026-01-01T09:00:00.000Z" }));
+      renderDetail();
+
+      expect(await screen.findByText(tr.review.overdueNotice("01.01.2026"))).toBeInTheDocument();
+      const info = screen.getByRole("heading", { name: t.info }).closest("div")!.parentElement!;
+      expect(within(info).getByText(t.lastReviewedAt).nextElementSibling).toHaveTextContent("01.01.2025");
+    });
+
+    it("tells in advance that the review is near, and says nothing when it is far", async () => {
+      const soon = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString();
+      getDocument.mockResolvedValue(documentDetail({ reviewIntervalMonths: 12, nextReviewAt: soon }));
+      const near = renderDetail();
+      expect(await screen.findByText(/gözden geçirme zamanı yaklaşıyor/)).toBeInTheDocument();
+      near.unmount();
+
+      const far = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+      getDocument.mockResolvedValue(documentDetail({ reviewIntervalMonths: 12, nextReviewAt: far }));
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+      expect(screen.queryByText(/gözden geçirme zamanı/)).not.toBeInTheDocument();
+    });
+
+    it("gives no notice for a document that is not in force", async () => {
+      getDocument.mockResolvedValue(documentDetail({ status: "WITHDRAWN", nextReviewAt: "2020-01-01T09:00:00.000Z" }));
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+      expect(screen.queryByText(/gözden geçirme zamanı geçti/)).not.toBeInTheDocument();
+    });
+
+    it("offers the review actions only to those who answer for the review", async () => {
+      getDocument.mockResolvedValue(documentDetail({ canMarkReviewed: true, canSetReviewInterval: true }));
+      const allowed = renderDetail();
+      expect(await screen.findByRole("button", { name: tr.review.reviewed })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: tr.review.setInterval })).toBeInTheDocument();
+      allowed.unmount();
+
+      getDocument.mockResolvedValue(documentDetail());
+      renderDetail();
+      await screen.findByRole("heading", { level: 1 });
+      expect(screen.queryByRole("button", { name: tr.review.reviewed })).not.toBeInTheDocument();
+    });
+
     it("offers the PDF copy of the revision in force next to the file itself", async () => {
       renderDetail();
       await screen.findByRole("heading", { level: 1 });

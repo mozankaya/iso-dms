@@ -228,3 +228,17 @@ describe("AppShell notifications", () => {
     expect(await screen.findByRole("link", { name: tr.notifications.unreadCount(250) })).toHaveTextContent("99+");
   });
 });
+
+describe("AppShell review list", () => {
+  it.each(["EDITOR", "APPROVER", "QUALITY_MANAGER", "ADMIN"])("links the reviews that are due for %s", (who) => {
+    role = who;
+    renderShell();
+    expect(screen.getByRole("link", { name: tr.reviewDue.navTitle })).toHaveAttribute("href", "/lists/review-due");
+  });
+
+  it("does not link it for readers, who have no reviews", () => {
+    role = "READER";
+    renderShell();
+    expect(screen.queryByRole("link", { name: tr.reviewDue.navTitle })).not.toBeInTheDocument();
+  });
+});

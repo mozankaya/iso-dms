@@ -193,3 +193,32 @@ export function canViewApproval(user: AuthenticatedUser, document: Pick<Document
 export function canCancelRequest(user: AuthenticatedUser, request: { requestedById: string }): boolean {
   return user.id === request.requestedById || user.role === 'ADMIN';
 }
+
+/**
+ * Who answers for the periodic review of a document (PROJECT.md 6.5): the one responsible for it, the approvers of
+ * its department, the quality managers and the administrators.
+ */
+export function isReviewResponsible(
+  user: AuthenticatedUser,
+  document: { ownerId: string; departmentId: string },
+): boolean {
+  if (user.role === 'QUALITY_MANAGER' || user.role === 'ADMIN') return true;
+  if (document.ownerId === user.id) return true;
+  return user.role === 'APPROVER' && user.departmentId !== null && user.departmentId === document.departmentId;
+}
+
+/** A document in force can be said to have been reviewed. */
+export function canMarkReviewed(
+  user: AuthenticatedUser,
+  document: { status: DocumentStatus; ownerId: string; departmentId: string },
+): boolean {
+  return document.status === 'PUBLISHED' && isReviewResponsible(user, document);
+}
+
+/** The period can be set for any document that was not withdrawn (also before it is published). */
+export function canSetReviewInterval(
+  user: AuthenticatedUser,
+  document: { status: DocumentStatus; ownerId: string; departmentId: string },
+): boolean {
+  return document.status !== 'WITHDRAWN' && isReviewResponsible(user, document);
+}

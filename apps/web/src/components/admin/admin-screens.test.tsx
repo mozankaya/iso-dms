@@ -42,6 +42,7 @@ function category(overrides: Partial<AdminCategoryDto> = {}): AdminCategoryDto {
     description: null,
     icon: null,
     sortOrder: 1,
+    defaultReviewIntervalMonths: null,
     isExternal: false,
     externalUrl: null,
     isActive: true,
@@ -222,7 +223,7 @@ describe("CategoryAdmin", () => {
     await user.click(screen.getByRole("button", { name: tr.admin.common.save }));
 
     await waitFor(() =>
-      expect(createCategory).toHaveBeenCalledWith({ name: "Prosedürler", codePrefix: "PR", description: null, icon: null, isExternal: false, externalUrl: undefined }),
+      expect(createCategory).toHaveBeenCalledWith({ name: "Prosedürler", codePrefix: "PR", description: null, icon: null, defaultReviewIntervalMonths: null, isExternal: false, externalUrl: undefined }),
     );
     await waitFor(() => expect(invalidatedKeys(invalidate)).toEqual(expect.arrayContaining(["admin-categories", "categories", "audit-logs"])));
   });
@@ -295,7 +296,7 @@ describe("CategoryAdmin", () => {
     await user.click(screen.getByRole("button", { name: tr.admin.common.save }));
 
     await waitFor(() =>
-      expect(updateCategory).toHaveBeenCalledWith("c1", { name: "Prosedürler", description: null, icon: null, externalUrl: "https://example.org", sortOrder: 1 }),
+      expect(updateCategory).toHaveBeenCalledWith("c1", { name: "Prosedürler", description: null, icon: null, defaultReviewIntervalMonths: null, externalUrl: "https://example.org", sortOrder: 1 }),
     );
   });
 

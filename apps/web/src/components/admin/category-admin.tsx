@@ -8,6 +8,8 @@ import {
   CATEGORY_URL_MAX_LENGTH,
   ORGANIZATION_NAME_MAX_LENGTH,
   ORGANIZATION_NAME_MIN_LENGTH,
+  REVIEW_INTERVAL_MAX_MONTHS,
+  REVIEW_INTERVAL_MIN_MONTHS,
   type AdminCategoryDto,
 } from "@iso-dms/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,12 +50,13 @@ function isHttpUrl(value: string): boolean {
 
 function CategoryForm({ category, onClose }: { category: AdminCategoryDto | null; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const ids = { name: useId(), prefix: useId(), description: useId(), icon: useId(), sortOrder: useId(), external: useId(), url: useId() };
+  const ids = { name: useId(), prefix: useId(), description: useId(), icon: useId(), sortOrder: useId(), review: useId(), external: useId(), url: useId() };
   const [name, setName] = useState(category?.name ?? "");
   const [prefix, setPrefix] = useState("");
   const [description, setDescription] = useState(category?.description ?? "");
   const [icon, setIcon] = useState(category?.icon ?? "");
   const [sortOrder, setSortOrder] = useState(category ? String(category.sortOrder) : "");
+  const [reviewInterval, setReviewInterval] = useState(category?.defaultReviewIntervalMonths ? String(category.defaultReviewIntervalMonths) : "");
   const [isExternal, setIsExternal] = useState(category?.isExternal ?? false);
   const [externalUrl, setExternalUrl] = useState(category?.externalUrl ?? "");
   const [submitted, setSubmitted] = useState(false);
@@ -62,10 +65,12 @@ function CategoryForm({ category, onClose }: { category: AdminCategoryDto | null
   const trimmedName = name.trim();
   const trimmedUrl = externalUrl.trim();
   const sortOrderNumber = sortOrder.trim() === "" ? null : Number(sortOrder);
+  const reviewMonths = reviewInterval.trim() === "" ? null : Number(reviewInterval);
   const invalid = {
     name: trimmedName.length < ORGANIZATION_NAME_MIN_LENGTH || trimmedName.length > ORGANIZATION_NAME_MAX_LENGTH,
     prefix: !category && !CATEGORY_PREFIX_PATTERN.test(prefix.trim().toUpperCase()),
     url: isExternal && trimmedUrl !== "" && !isHttpUrl(trimmedUrl),
+    review: reviewMonths !== null && (!Number.isInteger(reviewMonths) || reviewMonths < REVIEW_INTERVAL_MIN_MONTHS || reviewMonths > REVIEW_INTERVAL_MAX_MONTHS),
     sortOrder: sortOrderNumber !== null && (!Number.isInteger(sortOrderNumber) || sortOrderNumber < 0 || sortOrderNumber > CATEGORY_SORT_ORDER_MAX),
   };
 
@@ -75,6 +80,7 @@ function CategoryForm({ category, onClose }: { category: AdminCategoryDto | null
         name: trimmedName,
         description: description.trim() || null,
         icon: icon || null,
+        defaultReviewIntervalMonths: reviewMonths,
         externalUrl: isExternal ? trimmedUrl || null : undefined,
       };
       if (category) return updateCategory(category.id, { ...common, ...(sortOrderNumber !== null && { sortOrder: sortOrderNumber }) });
@@ -145,6 +151,12 @@ function CategoryForm({ category, onClose }: { category: AdminCategoryDto | null
         </div>
       </div>
       {show(invalid.sortOrder) ? <p className="-mt-2 text-sm text-destructive">{t.validation.sortOrderRange}</p> : !category && <p className="-mt-2 text-xs text-muted">{t.sortOrderHint}</p>}
+
+      <div className="space-y-1.5">
+        <Label htmlFor={ids.review}>{t.defaultReviewInterval}</Label>
+        <Input id={ids.review} inputMode="numeric" value={reviewInterval} onChange={(event) => setReviewInterval(event.target.value)} aria-invalid={show(invalid.review)} />
+        {show(invalid.review) ? <p className="text-sm text-destructive">{t.validation.reviewIntervalRange}</p> : <p className="text-xs text-muted">{t.defaultReviewIntervalHint}</p>}
+      </div>
 
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-sm font-medium" htmlFor={ids.external}>

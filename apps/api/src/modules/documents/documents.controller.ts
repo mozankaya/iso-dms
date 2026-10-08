@@ -5,6 +5,7 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   Req,
@@ -20,6 +21,8 @@ import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { CreateDocumentDto, UploadDocumentDto } from './dto/create-document.dto';
 import { ListDocumentsDto } from './dto/list-documents.dto';
 import { DocumentCreationService } from './document-creation.service';
+import { DocumentReviewService } from './document-review.service';
+import { MarkReviewedDto, UpdateReviewSettingsDto } from './dto/review.dto';
 import { DocumentsService } from './documents.service';
 
 const CREATOR_ROLES = ['EDITOR', 'APPROVER', 'QUALITY_MANAGER', 'ADMIN'] as const;
@@ -32,6 +35,7 @@ export class DocumentsController {
   constructor(
     private readonly documentsService: DocumentsService,
     private readonly creationService: DocumentCreationService,
+    private readonly reviewService: DocumentReviewService,
   ) {}
 
   @Get()
@@ -67,5 +71,27 @@ export class DocumentsController {
     @Req() req: Request,
   ) {
     return this.creationService.createFromUpload(user, dto, file, req.ip ?? null);
+  }
+
+  /** PROJECT.md 6.5: the review period of a document; the service decides who may. */
+  @Patch(':id/review-settings')
+  updateReviewSettings(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateReviewSettingsDto,
+    @Req() req: Request,
+  ) {
+    return this.reviewService.updateSettings(user, id, dto, req.ip ?? null);
+  }
+
+  @Post(':id/review')
+  @HttpCode(200)
+  markReviewed(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: MarkReviewedDto,
+    @Req() req: Request,
+  ) {
+    return this.reviewService.markReviewed(user, id, dto, req.ip ?? null);
   }
 }

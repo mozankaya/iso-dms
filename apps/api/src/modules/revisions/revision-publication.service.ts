@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { addMonths } from '../../common/utils/dates';
 import type { Prisma } from '../../generated/prisma/client';
 import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -20,7 +21,7 @@ export class RevisionPublicationService {
     tx: Prisma.TransactionClient,
     input: {
       user: AuthenticatedUser;
-      document: { id: string; code: string; firstPublishedAt: Date | null; currentRevisionId: string | null };
+      document: { id: string; code: string; firstPublishedAt: Date | null; currentRevisionId: string | null; reviewIntervalMonths: number | null };
       revision: { id: string; revisionNo: number };
       ipAddress: string | null;
     },
@@ -51,6 +52,9 @@ export class RevisionPublicationService {
         firstPublishedAt: document.firstPublishedAt ?? now,
         // The first publication is not a revision date; every later one is
         ...(document.firstPublishedAt && { revisedAt: now }),
+        // Putting a revision in force is a review too: the next one is due one period from now (PROJECT.md 6.5)
+        lastReviewedAt: now,
+        nextReviewAt: document.reviewIntervalMonths ? addMonths(now, document.reviewIntervalMonths) : null,
       },
     });
 

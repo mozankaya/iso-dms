@@ -38,6 +38,8 @@ import type {
   UserWithPasswordDto,
   AdminUserListQuery,
   ResetPasswordRequest,
+  ReviewDueItemDto,
+  ReviewDueQuery,
   ChangePasswordRequest,
 } from "@iso-dms/shared";
 import { DEFAULT_PAGE_SIZE } from "@iso-dms/shared";
@@ -314,4 +316,27 @@ export function markNotificationRead(id: string): Promise<NotificationDto> {
 
 export function markAllNotificationsRead(): Promise<{ count: number }> {
   return apiFetch<{ count: number }>("/notifications/read-all", { method: "POST" });
+}
+
+export function getReviewDueList(query: ReviewDueQuery): Promise<PaginatedDto<ReviewDueItemDto>> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  const text = search.toString();
+  return apiFetch<PaginatedDto<ReviewDueItemDto>>(`/lists/review-due${text ? `?${text}` : ""}`);
+}
+
+export function updateReviewSettings(documentId: string, intervalMonths: number | null): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/documents/${encodeURIComponent(documentId)}/review-settings`, {
+    method: "PATCH",
+    body: JSON.stringify({ intervalMonths }),
+  });
+}
+
+export function markDocumentReviewed(documentId: string, note?: string): Promise<DocumentDetailDto> {
+  return apiFetch<DocumentDetailDto>(`/documents/${encodeURIComponent(documentId)}/review`, {
+    method: "POST",
+    body: JSON.stringify(note ? { note } : {}),
+  });
 }

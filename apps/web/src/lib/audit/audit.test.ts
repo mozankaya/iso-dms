@@ -213,4 +213,11 @@ describe("describeEntry", () => {
     expect(describe_("REVISION_PDF_FAILED", { reason: "CONVERTER_UNAVAILABLE" })).toBe("Dönüştürme sunucusuna ulaşılamadı");
     expect(describe_("REVISION_PDF_FAILED", { reason: "SOMETHING_NEW" })).toBe("SOMETHING_NEW");
   });
+
+  it("describes the review actions", () => {
+    expect(describe_("DOCUMENT_REVIEWED", { note: "Madde 3 güncel" })).toBe("Madde 3 güncel");
+    expect(describe_("DOCUMENT_REVIEWED", { note: null })).toBe("");
+    expect(describe_("DOCUMENT_REVIEW_SETTINGS_CHANGED", { from: null, to: 12 })).toBe("12 ay");
+    expect(describe_("DOCUMENT_REVIEW_SETTINGS_CHANGED", { from: 12, to: null })).toBe("Periyot kaldırıldı");
+  });
 });

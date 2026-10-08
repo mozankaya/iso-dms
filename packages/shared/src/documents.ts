@@ -135,6 +135,8 @@ export interface DocumentDetailDto extends DocumentListItemDto {
   /** The revision in force, null for documents that were never published */
   currentRevisionId: string | null;
   reviewIntervalMonths: number | null;
+  /** When the document was last published or marked as reviewed (ISO 8601) */
+  lastReviewedAt: string | null;
   nextReviewAt: string | null;
   retentionYears: number | null;
   withdrawnAt: string | null;
@@ -152,6 +154,10 @@ export interface DocumentDetailDto extends DocumentListItemDto {
   canRequestWithdrawal: boolean;
   /** Whether feedback can be sent about this document (it is in force) */
   canSendFeedback: boolean;
+  /** Whether the user may say the document in force was reviewed (PROJECT.md 6.5) */
+  canMarkReviewed: boolean;
+  /** Whether the user may set the review period of the document */
+  canSetReviewInterval: boolean;
 }
 
 export interface StartRevisionRequest {

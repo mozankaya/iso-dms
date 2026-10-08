@@ -222,6 +222,8 @@ export class DocumentCreationService {
             fileType: input.fileType,
             status: 'DRAFT',
             ownerId: user.id,
+            // The category decides how often its documents are reviewed (PROJECT.md 6.5); the date follows at publication
+            reviewIntervalMonths: category.defaultReviewIntervalMonths,
           },
           select: DOCUMENT_LIST_SELECT,
         });

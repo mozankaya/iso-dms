@@ -33,6 +33,9 @@ function countersOf(stats: DashboardStatsDto): Counter[] {
     stats.openFeedback === null
       ? null
       : { key: "feedback", label: t.openFeedback, value: stats.openFeedback, hint: t.toBeHandled, href: "/feedback" },
+    stats.reviewDue === null
+      ? null
+      : { key: "review", label: t.reviewDue, value: stats.reviewDue, hint: t.reviewDueHint, href: "/lists/review-due" },
   ];
   return counters.filter((counter): counter is Counter => counter !== null);
 }

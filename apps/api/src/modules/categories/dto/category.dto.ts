@@ -6,9 +6,11 @@ import {
   CATEGORY_URL_MAX_LENGTH,
   ORGANIZATION_NAME_MAX_LENGTH,
   ORGANIZATION_NAME_MIN_LENGTH,
+  REVIEW_INTERVAL_MAX_MONTHS,
+  REVIEW_INTERVAL_MIN_MONTHS,
 } from '@iso-dms/shared';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 const upperCase = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toUpperCase() : value);
@@ -33,6 +35,16 @@ class CategoryFieldsDto {
   @Min(0)
   @Max(CATEGORY_SORT_ORDER_MAX)
   sortOrder?: number;
+
+  /** Months between reviews of the documents made in the category; null clears it. */
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => (value === '' ? null : value))
+  @ValidateIf((_object, value) => value !== null)
+  @Type(() => Number)
+  @IsInt()
+  @Min(REVIEW_INTERVAL_MIN_MONTHS)
+  @Max(REVIEW_INTERVAL_MAX_MONTHS)
+  defaultReviewIntervalMonths?: number | null;
 
   @IsOptional()
   @Transform(emptyToNull)

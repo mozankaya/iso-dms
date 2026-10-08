@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from '../../common/types/authenticated-user';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ApprovalsService } from '../approvals/approvals.service';
 import { publicationWhere, windowStart } from '../lists/publication-where';
+import { reviewDueWhere } from '../lists/review-due-where';
 
 /** Roles that hold approval steps (PROJECT.md 6.3). */
 const APPROVAL_ROLES = ['APPROVER', 'QUALITY_MANAGER', 'ADMIN'];
@@ -28,7 +29,7 @@ export class DashboardService {
     const mayWithdrawn = user.role !== 'READER';
     const mayDecide = APPROVAL_ROLES.includes(user.role);
 
-    const [totalDocuments, newlyPublished, revised, withdrawn, awaiting, openFeedback] = await Promise.all([
+    const [totalDocuments, newlyPublished, revised, withdrawn, awaiting, openFeedback, reviewDue] = await Promise.all([
       // Published documents are visible to everybody
       this.prisma.document.count({ where: { organizationId: user.organizationId, status: 'PUBLISHED' } }),
       this.prisma.document.count({ where: publicationWhere(user, 'new', since) }),
@@ -36,8 +37,10 @@ export class DashboardService {
       mayWithdrawn ? this.prisma.document.count({ where: publicationWhere(user, 'withdrawn', since) }) : null,
       mayDecide ? this.approvals.listPending(user, { page: 1, pageSize: 1 }) : null,
       FEEDBACK_ROLES.includes(user.role) ? this.prisma.feedback.count({ where: { organizationId: user.organizationId, isResolved: false } }) : null,
+      // Readers have no reviews to do (PROJECT.md 6.5)
+      mayWithdrawn ? this.prisma.document.count({ where: reviewDueWhere(user) }) : null,
     ]);
 
-    return { totalDocuments, newlyPublished, revised, withdrawn, awaitingApproval: awaiting?.total ?? null, openFeedback };
+    return { totalDocuments, newlyPublished, revised, withdrawn, awaitingApproval: awaiting?.total ?? null, openFeedback, reviewDue };
   }
 }

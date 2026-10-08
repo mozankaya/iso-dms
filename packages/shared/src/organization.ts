@@ -61,6 +61,8 @@ export interface AdminCategoryDto {
   description: string | null;
   icon: string | null;
   sortOrder: number;
+  /** New documents of the category start with this review period (months); null: none */
+  defaultReviewIntervalMonths: number | null;
   isExternal: boolean;
   externalUrl: string | null;
   isActive: boolean;
@@ -77,6 +79,7 @@ export interface CreateCategoryRequest {
   icon?: string | null;
   /** The next free place when missing */
   sortOrder?: number;
+  defaultReviewIntervalMonths?: number | null;
   isExternal?: boolean;
   externalUrl?: string | null;
 }
@@ -87,6 +90,7 @@ export interface UpdateCategoryRequest {
   description?: string | null;
   icon?: string | null;
   sortOrder?: number;
+  defaultReviewIntervalMonths?: number | null;
   externalUrl?: string | null;
   isActive?: boolean;
 }

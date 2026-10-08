@@ -7,3 +7,4 @@ export * from './feedback';
 export * from './organization';
 export * from './users';
 export * from './notifications';
+export * from './review';

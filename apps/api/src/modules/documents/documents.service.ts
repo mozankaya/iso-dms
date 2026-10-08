@@ -13,7 +13,9 @@ import {
   canEditListedDocument,
   canCancelRevision,
   canEditRevision,
+  canMarkReviewed,
   canRequestWithdrawal,
+  canSetReviewInterval,
   canViewApproval,
   canStartRevision,
   canSubmitRevision,
@@ -67,8 +69,10 @@ export class DocumentsService {
       select: {
         ...DOCUMENT_LIST_SELECT,
         departmentId: true,
+        ownerId: true,
         currentRevisionId: true,
         reviewIntervalMonths: true,
+        lastReviewedAt: true,
         nextReviewAt: true,
         retentionYears: true,
         withdrawnAt: true,
@@ -118,6 +122,7 @@ export class DocumentsService {
       owner: document.owner,
       currentRevisionId: document.currentRevisionId,
       reviewIntervalMonths: document.reviewIntervalMonths,
+      lastReviewedAt: document.lastReviewedAt?.toISOString() ?? null,
       nextReviewAt: document.nextReviewAt?.toISOString() ?? null,
       retentionYears: document.retentionYears,
       withdrawnAt: document.withdrawnAt?.toISOString() ?? null,
@@ -130,6 +135,8 @@ export class DocumentsService {
       canRequestWithdrawal: canRequestWithdrawal(user, document, hasOpenRevision, pendingWithdrawal !== null),
       // Everybody who sees a document in force may say something about it
       canSendFeedback: document.status === 'PUBLISHED',
+      canMarkReviewed: canMarkReviewed(user, document),
+      canSetReviewInterval: canSetReviewInterval(user, document),
     };
   }
 

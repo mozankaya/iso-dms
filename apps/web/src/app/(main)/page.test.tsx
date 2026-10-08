@@ -16,7 +16,7 @@ vi.mock("@/lib/api/endpoints", async (importOriginal) => ({
   getCategories: () => getCategories(),
 }));
 
-const everything: DashboardStatsDto = { totalDocuments: 12, newlyPublished: 3, revised: 2, withdrawn: 1, awaitingApproval: 4, openFeedback: 5 };
+const everything: DashboardStatsDto = { totalDocuments: 12, newlyPublished: 3, revised: 2, withdrawn: 1, awaitingApproval: 4, openFeedback: 5, reviewDue: 6 };
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -49,6 +49,7 @@ describe("the dashboard counters", () => {
       `${t.withdrawn}1${t.lastDays(30)}`,
       `${t.awaitingApproval}4${t.waitingForYou}`,
       `${t.openFeedback}5${t.toBeHandled}`,
+      `${t.reviewDue}6${t.reviewDueHint}`,
     ]);
   });
 
@@ -62,11 +63,12 @@ describe("the dashboard counters", () => {
     expect(link(t.withdrawn)).toHaveAttribute("href", "/lists/withdrawn");
     expect(link(t.awaitingApproval)).toHaveAttribute("href", "/approvals");
     expect(link(t.openFeedback)).toHaveAttribute("href", "/feedback");
+    expect(link(t.reviewDue)).toHaveAttribute("href", "/lists/review-due");
     expect(within(counters()).queryByRole("link", { name: new RegExp(t.totalDocuments) })).not.toBeInTheDocument();
   });
 
   it("leaves out the counters the role has no business with", async () => {
-    getDashboardStats.mockResolvedValue({ totalDocuments: 12, newlyPublished: 3, revised: 2, withdrawn: null, awaitingApproval: null, openFeedback: null });
+    getDashboardStats.mockResolvedValue({ totalDocuments: 12, newlyPublished: 3, revised: 2, withdrawn: null, awaitingApproval: null, openFeedback: null, reviewDue: null });
     renderPage();
     await within(counters()).findByText(t.totalDocuments);
 
@@ -74,6 +76,7 @@ describe("the dashboard counters", () => {
     expect(within(counters()).queryByText(t.withdrawn)).not.toBeInTheDocument();
     expect(within(counters()).queryByText(t.awaitingApproval)).not.toBeInTheDocument();
     expect(within(counters()).queryByText(t.openFeedback)).not.toBeInTheDocument();
+    expect(within(counters()).queryByText(t.reviewDue)).not.toBeInTheDocument();
   });
 
   it("shows a counter that is zero, which is not the same as one that is missing", async () => {
