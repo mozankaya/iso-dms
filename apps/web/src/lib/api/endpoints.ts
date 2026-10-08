@@ -28,6 +28,7 @@ import type {
   PublicationListItemDto,
   PublicationListKind,
   PublicationListQuery,
+  RevisionComparisonDto,
   RevisionHistoryItemDto,
   SentFeedbackDto,
   TemplateDto,
@@ -120,6 +121,11 @@ export function getEditorSession(revisionId: string): Promise<EditorSessionDto> 
 
 export function getRevisions(documentId: string): Promise<RevisionHistoryItemDto[]> {
   return apiFetch<RevisionHistoryItemDto[]>(`/documents/${encodeURIComponent(documentId)}/revisions`);
+}
+
+export function getRevisionComparison(documentId: string, from: string, to: string): Promise<RevisionComparisonDto> {
+  const query = new URLSearchParams({ from, to }).toString();
+  return apiFetch<RevisionComparisonDto>(`/documents/${encodeURIComponent(documentId)}/revisions/compare?${query}`);
 }
 
 /** API paths of the two download endpoints (see lib/download.ts for saving the result). */

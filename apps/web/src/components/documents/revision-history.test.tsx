@@ -124,10 +124,10 @@ describe("RevisionHistory", () => {
     it("opens each revision itself: editable ones for editing, the others for viewing", () => {
       renderHistory();
 
-      expect(within(rowOf(3)).getByRole("link")).toHaveTextContent(tr.detail.edit);
-      expect(within(rowOf(3)).getByRole("link")).toHaveAttribute("href", "/documents/doc-1/edit?revision=rev-3");
-      expect(within(rowOf(2)).getByRole("link")).toHaveTextContent(tr.detail.view);
-      expect(within(rowOf(1)).getByRole("link")).toHaveAttribute("href", "/documents/doc-1/edit?revision=rev-1");
+      expect(within(rowOf(3)).getAllByRole("link")[0]).toHaveTextContent(tr.detail.edit);
+      expect(within(rowOf(3)).getAllByRole("link")[0]).toHaveAttribute("href", "/documents/doc-1/edit?revision=rev-3");
+      expect(within(rowOf(2)).getAllByRole("link")[0]).toHaveTextContent(tr.detail.view);
+      expect(within(rowOf(1)).getAllByRole("link")[0]).toHaveAttribute("href", "/documents/doc-1/edit?revision=rev-1");
     });
 
     it("downloads the file of that very revision", () => {
@@ -174,7 +174,23 @@ describe("RevisionHistory", () => {
       expect(within(cards[1]).getByText(t.status.CURRENT)).toBeInTheDocument();
       expect(within(cards[1]).getByText("Onur Onaylayıcı")).toBeInTheDocument();
       expect(within(cards[1]).getByText("Madde 3 güncellendi")).toBeInTheDocument();
-      expect(within(cards[0]).getByRole("link")).toHaveAttribute("href", "/documents/doc-1/edit?revision=rev-3");
+      expect(within(cards[0]).getAllByRole("link")[0]).toHaveAttribute("href", "/documents/doc-1/edit?revision=rev-3");
     });
+  });
+
+  it("links each revision to a comparison with the one before it, the oldest has none", () => {
+    renderHistory();
+
+    const table = screen.getByRole("table", { name: t.tableLabel });
+    const links = within(table).getAllByRole("link", { name: new RegExp(t.compareWithPrevious) });
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/documents/doc-1/compare?from=rev-2&to=rev-3",
+      "/documents/doc-1/compare?from=rev-1&to=rev-2",
+    ]);
+  });
+
+  it("offers no comparison for a single revision", () => {
+    renderHistory([current]);
+    expect(screen.queryAllByRole("link", { name: new RegExp(t.compareWithPrevious) })).toHaveLength(0);
   });
 });

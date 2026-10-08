@@ -22,11 +22,14 @@ function RevisionActions({
   code,
   revision,
   canRequestPdf,
+  previousId,
 }: {
   documentId: string;
   code: string;
   revision: RevisionHistoryItemDto;
   canRequestPdf: boolean;
+  /** The revision before this one in the history; there is nothing to compare the oldest one with */
+  previousId: string | null;
 }) {
   const open = revision.canEdit ? tr.detail.edit : tr.detail.view;
   return (
@@ -38,6 +41,15 @@ function RevisionActions({
       >
         {open}
       </Link>
+      {previousId && (
+        <Link
+          href={`/documents/${documentId}/compare?from=${previousId}&to=${revision.id}`}
+          aria-label={`${t.compareWithPrevious} (${t.revision(revision.revisionNo)})`}
+          className="text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          {t.compareWithPrevious}
+        </Link>
+      )}
       <DownloadButton
         variant="ghost"
         path={downloadPath.revision(revision.id)}
@@ -94,7 +106,7 @@ export function RevisionHistory({
             </tr>
           </thead>
           <tbody>
-            {revisions.map((revision) => (
+            {revisions.map((revision, index) => (
               <tr key={revision.id} className="border-b border-border align-top last:border-0">
                 <td className="px-4 py-3 font-medium">{revision.revisionNo}</td>
                 <td className="px-4 py-3">
@@ -109,7 +121,7 @@ export function RevisionHistory({
                 <td className="px-4 py-3">{revision.approvedBy?.fullName ?? tr.detail.notSet}</td>
                 <td className="px-4 py-3">{revision.changeSummary ?? tr.detail.notSet}</td>
                 <td className="px-4 py-3">
-                  <RevisionActions documentId={documentId} code={code} revision={revision} canRequestPdf={canRequestPdf} />
+                  <RevisionActions documentId={documentId} code={code} revision={revision} canRequestPdf={canRequestPdf} previousId={revisions[index + 1]?.id ?? null} />
                 </td>
               </tr>
             ))}
@@ -118,7 +130,7 @@ export function RevisionHistory({
       </div>
 
       <ul className="space-y-3 md:hidden" aria-label={t.tableLabel}>
-        {revisions.map((revision) => (
+        {revisions.map((revision, index) => (
           <li key={revision.id}>
             <Card className="space-y-2 p-4">
               <div className="flex items-center justify-between gap-2">
@@ -139,7 +151,7 @@ export function RevisionHistory({
                 <dt className="text-muted">{t.columns.changeSummary}</dt>
                 <dd>{revision.changeSummary ?? tr.detail.notSet}</dd>
               </dl>
-              <RevisionActions documentId={documentId} code={code} revision={revision} canRequestPdf={canRequestPdf} />
+              <RevisionActions documentId={documentId} code={code} revision={revision} canRequestPdf={canRequestPdf} previousId={revisions[index + 1]?.id ?? null} />
             </Card>
           </li>
         ))}

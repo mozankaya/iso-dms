@@ -14,6 +14,11 @@ function number(metadata: Record<string, unknown> | null, key: string): number |
   return typeof value === "number" ? value : null;
 }
 
+function objectOf(metadata: Record<string, unknown> | null, key: string): Record<string, unknown> | null {
+  const value = metadata?.[key];
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
 function userRole(role: string | null): string | null {
   if (!role) return null;
   return role in tr.admin.users.roles ? tr.admin.users.roles[role as keyof typeof tr.admin.users.roles] : role;
@@ -71,6 +76,12 @@ export function describeEntry(entry: Pick<AuditLogDto, "action" | "metadata">): 
     case "FEEDBACK_RESOLVED":
       parts.push(text(metadata, "note"));
       break;
+    case "REVISIONS_COMPARED": {
+      const from = number(objectOf(metadata, "from"), "revisionNo");
+      const to = number(objectOf(metadata, "to"), "revisionNo");
+      parts.push(from !== null && to !== null ? t.details.compared(from, to) : null);
+      break;
+    }
     case "REVISION_CANCELLED":
     case "WITHDRAWAL_REQUESTED":
     case "DOCUMENT_WITHDRAWN":
