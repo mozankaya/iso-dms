@@ -94,6 +94,24 @@ Kurallar:
 Veritabanı ya da dosya deposu erişilemezse 503, yalnızca kuyruk ya da editör yoksa 200 ve `degraded` döner.
 Bir izleme aracından (ör. Uptime Kuma) bu adresi yoklatabilirsiniz.
 
+## Sorun giderme
+
+Önce `ops/dc ps` ve `curl https://kalite.firma.com/api/health` bakın; sonra ilgili servisin günlüğüne (`ops/dc logs --tail 100 <servis>`).
+
+| Belirti | Neden / çözüm |
+|---|---|
+| `api` hiç kalkmıyor, günlükte "Unsafe production configuration" | `.env.production`'da kısa/`change-me` sır ya da `https://` olmayan adres. Mesaj hangisi olduğunu yazar. `ops/generate-secrets.sh` ile (yeni dosya) sırları yeniden üretmeyin: mevcut veritabanı parolasıyla uyuşmaz; yalnızca ilgili satırı düzeltin. |
+| `migrate` hata verip çıkıyor | `ops/dc logs migrate`. Genellikle veritabanı henüz hazır değildir (kendiliğinden yeniden dener: `ops/dc up -d`) ya da `SEED_ADMIN_PASSWORD` örnek değer/12 karakterden kısa. |
+| Giriş yapılamıyor, sayfa yenilenince oturum düşüyor | Adres `https://` değil ya da `APP_HOST` ile tarayıcıdaki ad farklı (çerez `Secure`'dır). |
+| Tarayıcı sertifika uyarısı veriyor, editör açılmıyor | İç ağ sertifikası: kök sertifikayı istemcilere yükleyin (yukarıda). Genel adda Let's Encrypt alınamıyorsa `ops/dc logs caddy`: ad genel DNS'e ve sunucuya yönlenmeli, 80/443 açık olmalı. |
+| Editörde "Yükleme başarısız oldu" | `curl .../api/health` içinde `editor: down` ise `ops/dc logs onlyoffice` (ilk açılış ~5 dk sürer, bellek yetmeyebilir: `docker stats`). Sağlıklıysa `DOCS_HOST` adı istemciden çözülmüyordur. |
+| Onaya gönderme "editör sunucusuna ulaşılamadı" | Belge sunucusu (`onlyoffice`) çalışmıyor; kayıp olmasın diye gönderim bilerek durdurulur. |
+| E-posta bildirimleri gitmiyor | `SMTP_HOST` boşsa hiç gönderilmez (bildirimler uygulamada kalır). Doluysa `ops/dc logs api | grep -i mail`. |
+| Arama yeni yayınlanan dokümanın içeriğini bulmuyor | Dizinleme birkaç saniye sürer; olmadıysa 10 dakikada bir kendiliğinden tamamlanır ya da `ops/dc exec api pnpm exec tsx prisma/backfill-search.ts`. |
+| Yayınlanmış doküman için "PDF hazırlanıyor" bitmiyor | Editör sunucusu yoksa PDF yapılamaz; ayağa kalkınca kendiliğinden denenir. Başarısızsa kalite yöneticisi arayüzden **PDF Oluştur**. |
+| Disk doluyor | `docker system df`; `backups/` klasörü (saklama süresini `BACKUP_KEEP_DAYS` ile kısaltın, ikinci kopyayı başka yere alın); eski imajlar için `docker image prune`. |
+| Her şey bozuldu | Sakin olun: `ops/dc down` (veriler kalır) ve `ops/dc up -d --build`. Veri bozulduysa `ops/restore-drill.sh` ile son yedeği deneyin, sonra `ops/restore.sh`. |
+
 ## Güvenlik notları
 
 - `.env.production` tüm sırları içerir: yedeğini **güvenli bir yerde** (parola yöneticisi) tutun, repoya koymayın. Dosya kaybolursa
