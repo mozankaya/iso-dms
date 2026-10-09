@@ -14,6 +14,9 @@ coverage
 # Local data volumes
 docker-data
 
+# Backups (ops/backup.sh): database dumps and every document
+backups/
+
 # Project instruction files (kept local, not published)
 CLAUDE.md
 docs/PROJECT.md

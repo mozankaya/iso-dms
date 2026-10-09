@@ -60,6 +60,34 @@ ops/dc down                      # durdur (veriler kalır)
 
 > **Dikkat:** `ops/dc down -v` tüm verileri (veritabanı, dosyalar) **siler**. Yalnızca yeni baştan kurmak için kullanın.
 
+## Yedekleme ve geri yükleme
+
+ISO 9001'de kayıtlar (revizyonlar, onaylar, denetim izi) korunmak zorundadır; bu yüzden yedek bir tercih değil, işletmenin parçasıdır.
+
+| Betik | Ne yapar |
+|---|---|
+| `ops/backup.sh` | Veritabanını (`pg_dump`) ve dosya deposundaki **her dosyayı** tek bir klasöre yedekler: `backups/2026-10-09_020000/` (`db.dump`, `files.tar.gz`, `MANIFEST.json`, `SHA256SUMS`). Uygulama çalışırken alınabilir. Yarım kalan yedek klasörü **görünmez** (`.partial-...`), tam bitmeden adı konmaz. |
+| `ops/restore-drill.sh` | **Geri yükleme tatbikatı:** yedeği üretime dokunmadan geçici bir veritabanı ve depoya açar; satır sayılarını yedeğin kayıt anındaki sayılarla, her dosyanın SHA-256'sını veritabanındaki `checksum` ile karşılaştırır, denetim izi koruma tetikleyicilerinin geri geldiğini denetler. Sonunda `DRILL PASSED` ya da `DRILL FAILED`. |
+| `ops/restore.sh <klasör>` | Yedeği **üretime geri yükler** (veritabanını değiştirir, dosyaları ekler, hiç dosya silmez). `RESTORE` yazmanızı ister. |
+| `ops/dc exec api pnpm exec tsx prisma/verify-storage.ts` | Canlı sistemde her revizyon dosyasını ve PDF kopyasını kayıtlı SHA-256 ile karşılaştırır (salt okunur). |
+
+**Ayarlar** (ortam değişkeni ya da `.env.production`): `BACKUP_DIR` (varsayılan `./backups`), `BACKUP_KEEP_DAYS` (30: bundan eski yedekler silinir), `BACKUP_KEEP_MIN` (3: ne olursa olsun en az bu kadar yedek kalır), `BACKUP_COPY_TO` (ikinci bir yer: bağlanmış ağ paylaşımı, harici disk; bitmiş yedek oraya da kopyalanır ve doğrulanır).
+
+**Günlük otomatik yedek (Linux, `crontab -e`)** — gece 02:00, ayda bir tatbikat:
+
+```cron
+0 2 * * *  cd /opt/iso-dms && ops/backup.sh >> /var/log/iso-dms-backup.log 2>&1
+30 3 1 * * cd /opt/iso-dms && ops/restore-drill.sh >> /var/log/iso-dms-drill.log 2>&1
+```
+
+Kurallar:
+- **Aynı diskteki yedek yedek sayılmaz.** Disk ya da sunucu giderse ikisi birlikte gider: `BACKUP_COPY_TO` ile (ya da `rsync`/`rclone` ile) sunucudan **ayrı bir yere** da kopyalayın.
+- **Yedekte sırlar yoktur.** `.env.production`'ı ayrıca, güvenli bir yerde saklayın (yedek tek başına ayağa kalkmaz). Yedekte parola özetleri ve tüm dokümanlar vardır: yedeklere erişimi sınırlayın (betik klasörü yalnızca sahibine açık yapar).
+- **Tatbikat yapılmamış yedek umuttur.** İlk kurulumdan sonra ve her büyük güncellemeden önce `ops/restore-drill.sh` çalıştırın. Bir yedek `DRILL FAILED` verirse **o yedeğe güvenmeyin**; nedeni çıktıda yazar (bozuk dosya, eksik dosya, sayı farkı).
+- Yedek alınırken **taslakta kaydedilen** bir dosya, yedekteki sağlama toplamından farklı çıkabilir (taslak ara kayıtları değişir); yayınlanmış revizyonlar asla değişmez. Gece alın.
+- Yedekten sonra yapılanlar geri yüklemede **veritabanından silinir**; yalnızca o güne kadarki durum döner. Geri yükleme öncesi bunu `ops/restore.sh` açıkça yazar.
+- Redis, arama dizini ve PDF kuyruğu yedeklenmez: veritabanından ve dosyalardan kendiliğinden yeniden kurulur.
+
 ## Sağlık
 
 `GET /api/health` (herkese açık) her parçanın durumunu verir: `database`, `storage`, `redis`, `editor`.
