@@ -80,6 +80,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Wait for the services
+        run: |
+          # The service containers have started, which is not the same as being ready
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:9000/health >/dev/null && break
+            sleep 2
+          done
+          curl -sf http://localhost:9000/health
       - name: Database and first data
         run: |
           pnpm --filter @iso-dms/api prisma:generate
@@ -113,7 +121,7 @@ jobs:
 
       - name: Settings of the stack (random secrets, the proxy's own certificates)
         run: |
-          ops/generate-secrets.sh
+          bash ops/generate-secrets.sh
           sed -i \
             -e 's/^APP_HOST=.*/APP_HOST=localhost/' \
             -e 's/^DOCS_HOST=.*/DOCS_HOST=docs.localhost/' \
