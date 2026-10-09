@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "pretypecheck": "pnpm --filter @iso-dms/shared build",
+    "pretypecheck": "pnpm --filter @iso-dms/shared build && next typegen",
     "typecheck": "tsc --noEmit",
     "prebuild": "pnpm --filter @iso-dms/shared build",
     "test": "vitest run",

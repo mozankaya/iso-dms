@@ -43,7 +43,6 @@ jobs:
         ports: ["9000:9000"]
     # The same settings a developer has in .env (nothing here is a secret: the services live for this job only)
     env:
-      NODE_ENV: development
       TZ: Europe/Istanbul
       API_PORT: "4000"
       API_INTERNAL_URL: http://localhost:4000
@@ -90,6 +89,8 @@ jobs:
           curl -sf http://localhost:9000/health
       - name: Database and first data
         run: |
+          # The seed uses the shared package, which is consumed from its build (packages/shared/dist)
+          pnpm --filter @iso-dms/shared build
           pnpm --filter @iso-dms/api prisma:generate
           pnpm --filter @iso-dms/api exec prisma migrate deploy
           pnpm --filter @iso-dms/api prisma:seed

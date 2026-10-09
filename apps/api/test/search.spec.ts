@@ -12,6 +12,7 @@ import { createPrismaClient } from '../src/prisma/create-prisma-client';
 import { publishThroughApproval } from './helpers/approval-flow';
 import { deleteAuditLogs } from './helpers/audit-cleanup';
 import { createTestApp } from './helpers/create-test-app';
+import { startFakeCommandServer, type FakeCommandServer } from './helpers/fake-command-server';
 import { buildDocx, buildXlsx, paragraph } from './helpers/office-builders';
 import { signToken } from './helpers/tokens';
 
@@ -22,6 +23,7 @@ const organizationIds: string[] = [];
 let app: INestApplication;
 let storage: StorageService;
 let index: SearchIndexService;
+let commandServer: FakeCommandServer;
 
 const org = {} as { id: string; deptA: string; deptB: string; category: string; otherCategory: string };
 type Label = 'admin' | 'qm' | 'approverA' | 'editorA' | 'editorB' | 'reader';
@@ -99,6 +101,9 @@ async function publishedDoc(title: string, ...paragraphs: string[]) {
 }
 
 beforeAll(async () => {
+  // Sending a document to review asks the document server whether anybody has it open: a stand-in answers
+  commandServer = await startFakeCommandServer(process.env.ONLYOFFICE_JWT_SECRET!);
+  process.env.ONLYOFFICE_INTERNAL_URL = commandServer.origin;
   app = await createTestApp();
   storage = app.get(StorageService);
   index = app.get(SearchIndexService);
@@ -178,6 +183,7 @@ afterAll(async () => {
   await prisma.organization.deleteMany({ where: { id: { in: organizationIds } } });
   await prisma.$disconnect();
   await app.close();
+  await commandServer.close();
 });
 
 describe('GET /api/search: finding words', () => {
