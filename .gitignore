@@ -14,6 +14,10 @@ coverage
 # Local data volumes
 docker-data
 
+# Playwright (e2e)
+e2e/test-results
+e2e/playwright-report
+
 # Backups (ops/backup.sh): database dumps and every document
 backups/
 

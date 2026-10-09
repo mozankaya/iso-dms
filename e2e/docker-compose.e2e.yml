@@ -1,0 +1,10 @@
+# Used on top of docker-compose.prod.yml by the end-to-end test in CI (see e2e/README.md):
+#   docker compose --env-file .env.production -f docker-compose.prod.yml -f e2e/docker-compose.e2e.yml up -d --build caddy
+# The document server is replaced by a few lines of Node that answer what the application asks of it.
+services:
+  onlyoffice:
+    image: node:22-alpine
+    command: ["node", "/stub/server.js"]
+    environment: !reset {}
+    volumes: !override
+      - ./e2e/stub-editor:/stub:ro

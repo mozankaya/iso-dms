@@ -1,0 +1,152 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes the running check of the older one pointless
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Lint, types, unit and integration tests (real PostgreSQL, Redis and object storage, like on a developer machine)
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: iso_dms
+          POSTGRES_PASSWORD: iso_dms
+          POSTGRES_DB: iso_dms
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U iso_dms -d iso_dms" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+      storage:
+        image: rustfs/rustfs:latest
+        env:
+          RUSTFS_ACCESS_KEY: iso_dms
+          RUSTFS_SECRET_KEY: ci-storage-secret
+          RUSTFS_ADDRESS: ":9000"
+          RUSTFS_CONSOLE_ENABLE: "false"
+        ports: ["9000:9000"]
+    # The same settings a developer has in .env (nothing here is a secret: the services live for this job only)
+    env:
+      NODE_ENV: development
+      TZ: Europe/Istanbul
+      API_PORT: "4000"
+      API_INTERNAL_URL: http://localhost:4000
+      WEB_URL: http://localhost:3000
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      FILE_TOKEN_SECRET: ci-file-token-secret
+      DATABASE_URL: postgresql://iso_dms:iso_dms@localhost:5432/iso_dms
+      S3_ENDPOINT: localhost
+      S3_PORT: "9000"
+      S3_ACCESS_KEY: iso_dms
+      S3_SECRET_KEY: ci-storage-secret
+      S3_BUCKET: documents
+      S3_USE_SSL: "false"
+      ONLYOFFICE_PUBLIC_URL: http://localhost:8080
+      ONLYOFFICE_INTERNAL_URL: http://localhost:8080
+      ONLYOFFICE_JWT_SECRET: ci-onlyoffice-secret
+      REDIS_URL: redis://localhost:6379
+      REDIS_QUEUE_PREFIX: iso-dms
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api
+      NEXT_PUBLIC_ONLYOFFICE_URL: http://localhost:8080
+      SEED_ORGANIZATION_NAME: CI Kurumu
+      SEED_ORGANIZATION_SLUG: ci-kurumu
+      SEED_ADMIN_EMAIL: admin@example.com
+      SEED_ADMIN_FULL_NAME: Sistem Yöneticisi
+      SEED_ADMIN_PASSWORD: ChangeMe123!
+      LOGIN_RATE_LIMIT: "5"
+      MAX_UPLOAD_MB: "25"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Database and first data
+        run: |
+          pnpm --filter @iso-dms/api prisma:generate
+          pnpm --filter @iso-dms/api exec prisma migrate deploy
+          pnpm --filter @iso-dms/api prisma:seed
+      - name: Lint
+        run: pnpm lint
+      - name: Types
+        run: |
+          pnpm --filter @iso-dms/api typecheck
+          pnpm --filter @iso-dms/web typecheck
+      - name: Tests
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+
+  # The whole production stack as built from the Dockerfiles, driven through a real browser
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @iso-dms/e2e
+      - run: pnpm --filter @iso-dms/e2e typecheck
+      - run: pnpm --filter @iso-dms/e2e exec playwright install --with-deps chromium
+
+      - name: Settings of the stack (random secrets, the proxy's own certificates)
+        run: |
+          ops/generate-secrets.sh
+          sed -i \
+            -e 's/^APP_HOST=.*/APP_HOST=localhost/' \
+            -e 's/^DOCS_HOST=.*/DOCS_HOST=docs.localhost/' \
+            -e 's/^CADDYFILE=.*/CADDYFILE=Caddyfile.internal/' \
+            -e 's/^LOGIN_RATE_LIMIT=.*/LOGIN_RATE_LIMIT=1000/' .env.production
+      - name: Build and start the stack
+        run: |
+          COMPOSE="docker compose --env-file .env.production -f docker-compose.prod.yml -f e2e/docker-compose.e2e.yml"
+          $COMPOSE up -d --build caddy onlyoffice
+          for _ in $(seq 1 60); do
+            curl -skf https://localhost/api/health | grep -q '"status":"ok"' && exit 0
+            sleep 5
+          done
+          echo "The stack did not become healthy" >&2
+          $COMPOSE ps
+          $COMPOSE logs --tail 80
+          exit 1
+      - name: Smoke test
+        env:
+          E2E_BASE_URL: https://localhost
+          E2E_ADMIN_EMAIL: admin@example.com
+        run: |
+          E2E_ADMIN_PASSWORD="$(grep '^SEED_ADMIN_PASSWORD=' .env.production | cut -d= -f2)"
+          export E2E_ADMIN_PASSWORD
+          pnpm --filter @iso-dms/e2e e2e
+      - name: What the stack said
+        if: failure()
+        run: docker compose --env-file .env.production -f docker-compose.prod.yml -f e2e/docker-compose.e2e.yml logs --tail 150
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7

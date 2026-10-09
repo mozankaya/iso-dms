@@ -1,0 +1,14 @@
+{
+  "name": "@iso-dms/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^26.6.4",
+    "typescript": "^5.9.3"
+  }
+}
