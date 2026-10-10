@@ -9,6 +9,7 @@ import { ObjectStorage, objectStorageOptionsFromEnv } from '../src/modules/stora
 import { FILE_TYPE_INFO } from '../src/modules/storage/storage-keys';
 import { createPrismaClient } from '../src/prisma/create-prisma-client';
 import { findDocumentFields } from '../src/modules/documents/document-fields/docx-fields';
+import { findXlsxFields } from '../src/modules/documents/document-fields/xlsx-fields';
 import { ensureBlankTemplateFiles } from './blank-templates';
 import { SEED_CATEGORIES, SEED_DEPARTMENTS, SEED_TEMPLATES } from './seed-data';
 
@@ -94,7 +95,7 @@ async function main() {
             storageKey,
             // Only one default per file type: an installation that has one keeps it
             isDefault: template.isDefault && !(await prisma.template.findFirst({ where: { organizationId, fileType: template.fileType, categoryId: null, isDefault: true } })),
-            fieldTags: template.fileType === 'DOCX' ? await findDocumentFields(file) : [],
+            fieldTags: template.fileType === 'DOCX' ? await findDocumentFields(file) : await findXlsxFields(file),
           },
         });
       }

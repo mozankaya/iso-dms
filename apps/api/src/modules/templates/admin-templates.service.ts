@@ -7,6 +7,7 @@ import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { findDocumentFields } from '../documents/document-fields/docx-fields';
+import { findXlsxFields } from '../documents/document-fields/xlsx-fields';
 import { validateOfficeFile } from '../documents/office-file.validator';
 import { FILE_TYPE_INFO } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
@@ -256,9 +257,9 @@ export class AdminTemplatesService {
     return { fileType: await validateOfficeFile(file, maxBytes) };
   }
 
-  /** The document fields a Word template has (PROJECT.md 6.14); none for Excel, whose headers are another matter. */
+  /** The document fields a template has (PROJECT.md 6.14): content controls in Word, named cells in Excel. */
   private async fieldsOf(buffer: Buffer, fileType: FileType): Promise<DocumentFieldTag[]> {
-    return fileType === 'DOCX' ? findDocumentFields(buffer) : [];
+    return fileType === 'DOCX' ? findDocumentFields(buffer) : findXlsxFields(buffer);
   }
 
   private newKey(organizationId: string, fileType: FileType): string {

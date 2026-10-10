@@ -20,8 +20,11 @@ export async function buildDocx(bodyXml: string): Promise<Buffer> {
 
 export type SheetCells = Record<string, string | number>;
 
-/** The blank Excel template with the given cells on its first sheet (text through the shared strings, like Excel does). */
-export async function buildXlsx(sheets: Record<string, SheetCells>): Promise<Buffer> {
+/**
+ * The blank Excel template with the given cells on its sheets (text through the shared strings, like Excel does) and
+ * the given defined names (name to reference, e.g. DOC_CODE: "Sayfa1!$B$1").
+ */
+export async function buildXlsx(sheets: Record<string, SheetCells>, definedNames: Record<string, string> = {}): Promise<Buffer> {
   const zip = await JSZip.loadAsync(await readFile(path.resolve(__dirname, '../../templates/blank.xlsx')));
   const strings: string[] = [];
   const names = Object.keys(sheets);
@@ -44,7 +47,7 @@ export async function buildXlsx(sheets: Record<string, SheetCells>): Promise<Buf
 
   zip.file(
     'xl/workbook.xml',
-    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${names.map((name, i) => `<sheet name="${escape(name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${names.map((name, i) => `<sheet name="${escape(name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets>${Object.keys(definedNames).length > 0 ? `<definedNames>${Object.entries(definedNames).map(([name, reference]) => `<definedName name="${name}">${escape(reference)}</definedName>`).join('')}</definedNames>` : ''}</workbook>`,
   );
   zip.file(
     'xl/_rels/workbook.xml.rels',

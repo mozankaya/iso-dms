@@ -5,13 +5,15 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogsService } from '../../audit-logs/audit-logs.service';
 import { buildRevisionKey } from '../../storage/storage-keys';
 import { StorageService } from '../../storage/storage.service';
+import { FILE_TYPE_INFO } from '../../storage/storage-keys';
 import { fillDocumentFields, InvalidDocxError, type DocumentFieldValues } from './docx-fields';
+import { fillXlsxFields, InvalidXlsxError } from './xlsx-fields';
 
 export type FieldsReason = 'CREATED' | 'REVISION_STARTED' | 'SUBMITTED';
 export type FieldsOutcome = 'UPDATED' | 'UNCHANGED' | 'SKIPPED';
 
 /**
- * Writes the data of a document into the fields of the Word file of a draft revision (PROJECT.md 6.14): code, title,
+ * Writes the data of a document into the fields of the Word or Excel file of a draft revision (PROJECT.md 6.14): code, title,
  * department, revision number and who prepared it. It runs when a document is made, when a revision is started and
  * when a draft is sent to review, so what the approvers read is what is published: the file does not change after
  * the review starts. Date of publication and approver are not written (they only exist at publication).
@@ -37,7 +39,7 @@ export class DocumentFieldsService {
   }
 
   /**
-   * Fills in the fields of a draft. Anything that is not a Word draft with fields, or is being edited at this
+   * Fills in the fields of a draft. Anything that is not a draft with fields, or is being edited at this
    * moment, is left alone (SKIPPED). Storage and database failures are thrown.
    */
   async apply(revisionId: string, reason: FieldsReason, audit: { userId: string; ipAddress: string | null } | null = null): Promise<FieldsOutcome> {
@@ -56,8 +58,9 @@ export class DocumentFieldsService {
         document: { select: { code: true, title: true, fileType: true, department: { select: { name: true } } } },
       },
     });
-    if (!revision || revision.document.fileType !== 'DOCX' || revision.status !== 'DRAFT' || revision.editSessionStartedAt) return 'SKIPPED';
+    if (!revision || revision.status !== 'DRAFT' || revision.editSessionStartedAt) return 'SKIPPED';
 
+    const { fileType } = revision.document;
     const values: DocumentFieldValues = {
       DOC_CODE: revision.document.code,
       DOC_TITLE: revision.document.title,
@@ -69,10 +72,10 @@ export class DocumentFieldsService {
     const original = await this.storage.getBuffer(revision.storageKey);
     let filled;
     try {
-      filled = await fillDocumentFields(original, values);
+      filled = await (fileType === 'DOCX' ? fillDocumentFields(original, values) : fillXlsxFields(original, values));
     } catch (error) {
-      if (error instanceof InvalidDocxError) {
-        this.logger.warn(`Revision ${revisionId}: the file is not a readable .docx, its fields are left alone`);
+      if (error instanceof InvalidDocxError || error instanceof InvalidXlsxError) {
+        this.logger.warn(`Revision ${revisionId}: the file is not a readable ${FILE_TYPE_INFO[fileType].extension} package, its fields are left alone`);
         return 'SKIPPED';
       }
       throw error;
@@ -80,8 +83,8 @@ export class DocumentFieldsService {
     if (filled.buffer === original) return 'UNCHANGED';
 
     // The new content goes to a new object, like every save: nothing points to a half written file
-    const storageKey = buildRevisionKey({ organizationId: revision.organizationId, documentId: revision.documentId, revisionNo: revision.revisionNo, fileType: 'DOCX' });
-    await this.storage.put(storageKey, filled.buffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    const storageKey = buildRevisionKey({ organizationId: revision.organizationId, documentId: revision.documentId, revisionNo: revision.revisionNo, fileType });
+    await this.storage.put(storageKey, filled.buffer, FILE_TYPE_INFO[fileType].mimeType);
 
     let replaced = false;
     try {

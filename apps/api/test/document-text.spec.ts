@@ -76,6 +76,12 @@ describe('extractXlsxCells', () => {
     ]);
   });
 
+  it('leaves out the cells of the document fields: the application writes them and they change with every revision', async () => {
+    const buffer = await buildXlsx({ Sayfa1: { A1: 'Kod', B1: 'PR-KK-001', A2: 'Ürün', B2: 'Çay' } }, { DOC_CODE: 'Sayfa1!$B$1' });
+
+    expect((await extractXlsxCells(buffer)).map((cell) => `${cell.address}=${cell.value}`)).toEqual(['A1=Kod', 'A2=Ürün', 'B2=Çay']);
+  });
+
   it('refuses what is not an Excel package', async () => {
     await expect(extractXlsxCells(Buffer.from('plain text'))).rejects.toBeInstanceOf(UnreadableDocumentError);
   });

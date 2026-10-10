@@ -7,7 +7,7 @@ import { INestApplication } from '@nestjs/common';
 import JSZip from 'jszip';
 import request from 'supertest';
 import type { AdminTemplateDto, DocumentDetailDto, DocumentListItemDto } from '@iso-dms/shared';
-import { buildStandardDocx } from '../prisma/standard-template';
+import { buildStandardDocx, buildStandardXlsx } from '../prisma/standard-template';
 import type { UserRole } from '../src/generated/prisma/enums';
 import { DocumentFieldsService } from '../src/modules/documents/document-fields/document-fields.service';
 import { fillDocumentFields } from '../src/modules/documents/document-fields/docx-fields';
@@ -31,7 +31,8 @@ let commandServer: FakeCommandServer;
 let blankDocx: Buffer;
 let blankXlsx: Buffer;
 let standardDocx: Buffer;
-const org = {} as { id: string; dept: string; category: string; draftCategory: string; standardTemplate: string; blankTemplate: string; xlsxTemplate: string };
+let standardXlsx: Buffer;
+const org = {} as { id: string; dept: string; category: string; draftCategory: string; standardTemplate: string; blankTemplate: string; xlsxTemplate: string; standardXlsxTemplate: string };
 type Label = 'admin' | 'qm' | 'approver' | 'editor' | 'preparer';
 const users = {} as Record<Label, { id: string; name: string; token: string }>;
 let counter = 0;
@@ -46,6 +47,12 @@ async function headerOf(storageKey: string): Promise<string[]> {
   const zip = await JSZip.loadAsync(await storage.getBuffer(storageKey));
   const xml = await zip.file('word/header1.xml')!.async('string');
   return [...xml.matchAll(/<w:sdtContent>[\s\S]*?<w:t[^>]*>([^<]*)<\/w:t>/g)].map((m) => m[1]);
+}
+/** What the field cells of a stored Excel revision show: the value of B1, D1, B2, B3 and D3. */
+async function cellsOf(storageKey: string): Promise<Record<string, string>> {
+  const zip = await JSZip.loadAsync(await storage.getBuffer(storageKey));
+  const xml = await zip.file('xl/worksheets/sheet1.xml')!.async('string');
+  return Object.fromEntries([...xml.matchAll(/<c r="([BD][123])"[^>]*><is><t[^>]*>([^<]*)<\/t>/g)].map((m) => [m[1], m[2]]));
 }
 const sha = (buffer: Buffer) => createHash('sha256').update(buffer).digest('hex');
 
@@ -84,6 +91,7 @@ beforeAll(async () => {
   blankDocx = await readFile(path.resolve(__dirname, '../templates/blank.docx'));
   blankXlsx = await readFile(path.resolve(__dirname, '../templates/blank.xlsx'));
   standardDocx = await buildStandardDocx();
+  standardXlsx = await buildStandardXlsx();
   commandServer = await startFakeCommandServer(process.env.ONLYOFFICE_JWT_SECRET!);
   process.env.ONLYOFFICE_INTERNAL_URL = commandServer.origin;
 
@@ -100,6 +108,7 @@ beforeAll(async () => {
   org.standardTemplate = await putTemplate('Antetli', 'DOCX', standardDocx, ['DOC_CODE', 'DOC_TITLE', 'DOC_DEPARTMENT', 'DOC_REVISION_NO', 'DOC_PREPARED_BY']);
   org.blankTemplate = await putTemplate('Boş', 'DOCX', blankDocx, []);
   org.xlsxTemplate = await putTemplate('Tablo', 'XLSX', blankXlsx, []);
+  org.standardXlsxTemplate = await putTemplate('Antetli Tablo', 'XLSX', standardXlsx, ['DOC_CODE', 'DOC_TITLE', 'DOC_DEPARTMENT', 'DOC_REVISION_NO', 'DOC_PREPARED_BY']);
 
   const make = async (label: Label, role: UserRole) => {
     const name = `Kişi ${label}`;
@@ -154,7 +163,7 @@ describe('making a document', () => {
     expect((await auditOf(revision.id)).map((entry) => entry.action)).toEqual([]);
   });
 
-  it('leaves an Excel file alone', async () => {
+  it('leaves an Excel file without named cells alone', async () => {
     const response = await create({ templateId: org.xlsxTemplate, fileType: 'XLSX' }).expect(201);
     const revision = await prisma.revision.findFirstOrThrow({ where: { documentId: response.body.id } });
     expect((await storage.getBuffer(revision.storageKey)).equals(blankXlsx)).toBe(true);
@@ -202,11 +211,11 @@ describe('apply', () => {
   });
 
   it.each([
-    ['an Excel file', () => draftWith(blankXlsx, { fileType: 'XLSX' })],
-    ['a file that is not a readable docx', () => draftWith(Buffer.from('not a zip'))],
-  ])('leaves %s alone', async (_label, make) => {
+    ['an Excel file without named cells', () => draftWith(blankXlsx, { fileType: 'XLSX' }), 'UNCHANGED'],
+    ['a file that is not a readable docx', () => draftWith(Buffer.from('not a zip')), 'SKIPPED'],
+  ])('leaves %s alone', async (_label, make, outcome) => {
     const draft = await make();
-    expect(await fields.apply(draft.revisionId, 'SUBMITTED')).toBe('SKIPPED');
+    expect(await fields.apply(draft.revisionId, 'SUBMITTED')).toBe(outcome);
     const row = await revisionRow(draft.revisionId);
     expect(row).toMatchObject({ storageKey: draft.storageKey, checksum: draft.checksum, editorKey: draft.editorKey });
   });
@@ -357,5 +366,76 @@ describe('the fields of a template', () => {
     expect((replaced.body as AdminTemplateDto).fields).toHaveLength(5);
     const audit = (await auditOf(made.id)).find((entry) => entry.action === 'TEMPLATE_FILE_REPLACED')!;
     expect((audit.metadata as { fields: string[] }).fields).toHaveLength(5);
+  });
+});
+
+describe('Excel files', () => {
+  it('are filled when the document is made from a template with named cells', async () => {
+    const response = await create({ templateId: org.standardXlsxTemplate, fileType: 'XLSX', title: 'Tedarikçi Listesi' }).expect(201);
+    const document = response.body as DocumentListItemDto;
+    const revision = await prisma.revision.findFirstOrThrow({ where: { documentId: document.id } });
+
+    expect(await cellsOf(revision.storageKey)).toEqual({ B1: document.code, D1: '0', B2: 'Tedarikçi Listesi', B3: 'Kalite Koordinatörlüğü', D3: users.editor.name });
+    const stored = await storage.getBuffer(revision.storageKey);
+    expect(revision).toMatchObject({ fileSize: stored.length, checksum: sha(stored), status: 'DRAFT' });
+  });
+
+  it('are filled when they are uploaded, and a file without named cells is left alone', async () => {
+    const withFields = await api().post('/api/documents/upload').set(auth(users.editor.token)).field('categoryId', org.category).field('departmentId', org.dept).field('title', 'Yüklenen Antetli Tablo')
+      .attach('file', standardXlsx, { filename: 'antetli.xlsx', contentType: 'application/octet-stream' }).expect(201);
+    const without = await api().post('/api/documents/upload').set(auth(users.editor.token)).field('categoryId', org.category).field('departmentId', org.dept).field('title', 'Yüklenen Düz Tablo')
+      .attach('file', blankXlsx, { filename: 'duz.xlsx', contentType: 'application/octet-stream' }).expect(201);
+
+    const filled = await prisma.revision.findFirstOrThrow({ where: { documentId: withFields.body.id } });
+    expect((await cellsOf(filled.storageKey)).B1).toBe(withFields.body.code);
+    const plain = await prisma.revision.findFirstOrThrow({ where: { documentId: without.body.id } });
+    expect((await storage.getBuffer(plain.storageKey)).equals(blankXlsx)).toBe(true);
+  });
+
+  it('are corrected when the draft is sent to review, with an entry of what was corrected, and then they stay as they are', async () => {
+    const draft = await draftWith(standardXlsx, { fileType: 'XLSX' });
+    expect(await fields.apply(draft.revisionId, 'CREATED')).toBe('UPDATED');
+    const filled = await revisionRow(draft.revisionId);
+
+    // A person typed over a field in the editor
+    const zip = await JSZip.loadAsync(await storage.getBuffer(filled.storageKey));
+    const sheet = (await zip.file('xl/worksheets/sheet1.xml')!.async('string')).replace(/(<c r="B1"[^>]*><is><t[^>]*>)[^<]*/, '$1ELLE YAZILDI');
+    zip.file('xl/worksheets/sheet1.xml', sheet);
+    const tampered = await zip.generateAsync({ type: 'nodebuffer' });
+    await storage.put(filled.storageKey, tampered, 'application/octet-stream');
+    await prisma.revision.update({ where: { id: draft.revisionId }, data: { checksum: sha(tampered), fileSize: tampered.length } });
+
+    expect(await fields.apply(draft.revisionId, 'SUBMITTED', { userId: users.preparer.id, ipAddress: null })).toBe('UPDATED');
+
+    const corrected = await revisionRow(draft.revisionId);
+    expect((await cellsOf(corrected.storageKey)).B1).toBe(draft.code);
+    const entry = (await auditOf(draft.revisionId)).find((item) => item.action === 'REVISION_FIELDS_UPDATED')!;
+    expect(entry.metadata).toMatchObject({ reason: 'SUBMITTED', changes: { DOC_CODE: { from: 'ELLE YAZILDI', to: draft.code, count: 1 } } });
+    expect(await fields.apply(draft.revisionId, 'SUBMITTED')).toBe('UNCHANGED');
+  });
+
+  it('are not touched once they are in review or in force: the file is what was approved', async () => {
+    const draft = await draftWith(standardXlsx, { fileType: 'XLSX' });
+    expect(await fields.apply(draft.revisionId, 'SUBMITTED')).toBe('UPDATED');
+    const atReview = await revisionRow(draft.revisionId);
+
+    await publishThroughApproval(app, { revisionId: draft.revisionId, submitToken: users.preparer.token, approverToken: users.approver.token, qualityToken: users.qm.token });
+
+    const published = await revisionRow(draft.revisionId);
+    expect(published).toMatchObject({ status: 'APPROVED', checksum: atReview.checksum, storageKey: atReview.storageKey });
+    expect(await fields.apply(draft.revisionId, 'SUBMITTED')).toBe('SKIPPED');
+    expect((await cellsOf(published.storageKey)).D3).toBe(users.preparer.name);
+  });
+
+  it('are skipped, and nothing is thrown, when the file is not an Excel package', async () => {
+    const draft = await draftWith(Buffer.from('not a package'), { fileType: 'XLSX' });
+    expect(await fields.apply(draft.revisionId, 'CREATED')).toBe('SKIPPED');
+    expect((await revisionRow(draft.revisionId)).storageKey).toBe(draft.storageKey);
+  });
+
+  it('are listed with their fields when an Excel template is added', async () => {
+    const response = await api().post('/api/templates').set(auth(users.admin.token)).field('name', `Antetli Excel ${suffix}`)
+      .attach('file', standardXlsx, { filename: 'a.xlsx', contentType: 'application/octet-stream' }).expect(201);
+    expect((response.body as AdminTemplateDto).fields).toEqual(['DOC_CODE', 'DOC_TITLE', 'DOC_DEPARTMENT', 'DOC_REVISION_NO', 'DOC_PREPARED_BY']);
   });
 });

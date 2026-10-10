@@ -28,5 +28,6 @@ export const SEED_CATEGORIES = [
 export const SEED_TEMPLATES = [
   { name: 'Standart Antetli Word Şablonu', fileType: 'DOCX', fileName: 'standard.docx', isDefault: true },
   { name: 'Boş Word Şablonu', fileType: 'DOCX', fileName: 'blank.docx', isDefault: false },
-  { name: 'Boş Excel Şablonu', fileType: 'XLSX', fileName: 'blank.xlsx', isDefault: true },
+  { name: 'Standart Antetli Excel Şablonu', fileType: 'XLSX', fileName: 'standard.xlsx', isDefault: true },
+  { name: 'Boş Excel Şablonu', fileType: 'XLSX', fileName: 'blank.xlsx', isDefault: false },
 ] as const;

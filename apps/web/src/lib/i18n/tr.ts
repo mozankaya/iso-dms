@@ -733,7 +733,7 @@ export const tr = {
       },
       noFields: "Yok",
       fieldsHelp:
-        "Dosya Alanları: şablonun üst bilgisinde (Word'de içerik denetimi, etiket DOC_CODE, DOC_TITLE, DOC_DEPARTMENT, DOC_REVISION_NO, DOC_PREPARED_BY) bulunan ve doküman oluşturulurken, revizyon başlatılırken ve onaya gönderilirken otomatik doldurulan alanlar.",
+        "Dosya Alanları: şablonda bulunan ve doküman oluşturulurken, revizyon başlatılırken ve onaya gönderilirken otomatik doldurulan alanlar. Word'de içerik denetimi, Excel'de adlandırılmış hücre olarak eklenir; adı ya da etiketi DOC_CODE, DOC_TITLE, DOC_DEPARTMENT, DOC_REVISION_NO veya DOC_PREPARED_BY olmalıdır.",
       fileTypes: { DOCX: "Word", XLSX: "Excel" },
       allCategories: "Tüm kategoriler",
       defaultBadge: "Varsayılan",
