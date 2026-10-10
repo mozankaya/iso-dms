@@ -37,6 +37,8 @@ curl https://kalite.firma.com/api/health
   `ops/dc cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt` ile alıp istemcilere yükleyin
   (Windows: "Güvenilen Kök Sertifika Yetkilileri"). Aksi halde tarayıcı sertifika uyarısı verir ve editör açılmaz.
 - Sunucu açılışında her şey kendiliğinden başlar (`restart: unless-stopped`).
+- **İlk açılıştan sonra ~10 dakika bekleyin:** belge sunucusu (ONLYOFFICE) ilk açılıştan 3-4 dakika sonra kendi süreçlerini bir kez yeniden başlatır. O sırada editörde bir doküman açıksa "Bağlantı kesildi" görünür ve yazılanlar kaybolabilir. Kullanıcılara duyurmadan önce kurulumu bir kez kendiniz deneyin; belge sunucusunu yeniden oluşturduktan sonra (güncelleme) de aynısı geçerlidir.
+
 
 ## Güncelleme
 

@@ -9,6 +9,7 @@
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@types/node": "^26.6.4",
+    "jszip": "^3.10.2",
     "typescript": "^5.9.3"
   }
 }
